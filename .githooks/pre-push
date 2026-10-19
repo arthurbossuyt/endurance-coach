@@ -1,0 +1,39 @@
+#!/bin/sh
+# Blocks a push that would publish athlete data. Opt in once per clone:
+#   git config core.hooksPath .githooks
+#
+# Scans only the commits this push sends (not yet on the remote), plus the
+# index and worktree, with scripts/leak-scan. Any hit or setup error blocks.
+# archive/* branches hold pre-squash history and are never pushed.
+# Without an athlete profile there is nothing to leak: the scan is skipped.
+
+remote="$1"
+root=$(git rev-parse --show-toplevel) || exit 1
+home="${ENDURANCE_COACH_HOME:-$HOME/.endurance-coach}"
+
+if [ ! -f "$home/profile.yaml" ]; then
+  echo "pre-push: no profile.yaml in $home, leak scan skipped"
+  exit 0
+fi
+
+tips=""
+while read -r local_ref local_sha _ _; do
+  case "$local_sha" in *[!0]*) ;; *) continue ;; esac # branch delete
+  case "$local_ref" in
+    refs/heads/archive/*)
+      echo "pre-push: refusing to push $local_ref (pre-squash history)" >&2
+      exit 1
+      ;;
+  esac
+  tips="$tips $local_sha"
+done
+
+[ -n "$tips" ] || exit 0
+
+# shellcheck disable=SC2086 # tips is a list of commit ids
+node "$root/scripts/leak-scan" --revs $tips --not --remotes="$remote"
+status=$?
+if [ "$status" -ne 0 ]; then
+  echo "pre-push: blocked by scripts/leak-scan (exit $status). Fix the hits above; never bypass with --no-verify." >&2
+fi
+exit "$status"

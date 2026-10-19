@@ -14,7 +14,8 @@ How the endurance-coach plugin is laid out and how to extend it. Built on branch
 | `schemas/` | JSON Schemas v0 (draft 2020-12) for `profile`, `plan`, `session-log`. |
 | `examples/triathlete/` | Fictional athlete home; CI validates it. |
 | `scripts/validate.mjs` | `npm run validate:examples` (CI) and `npm run validate:local` (local only, reads `$ENDURANCE_COACH_HOME` or `~/.endurance-coach`). Errors print key paths, never values. |
-| `scripts/leak-scan`, `scripts/leak-scan.allow` | Local-only leak scan of all history against the real athlete home. Header comment documents every needle. |
+| `scripts/leak-scan`, `scripts/leak-scan.allow` | Local-only leak scan of all history (or, with `--revs`, the given commits) against the real athlete home. Header comment documents every needle. |
+| `.githooks/pre-push` | Opt-in hook (`git config core.hooksPath .githooks`): leak-scans the commits a push sends, blocks on any hit, refuses `archive/*` branches, skips without a profile. |
 | `scripts/lib/athlete-home.cjs` | Shared home resolution, plan discovery and YAML loading for both scripts. |
 | `.github/workflows/` | `validate.yml` (examples, Oura script on Linux) and `gitleaks.yml`. Actions pinned to SHAs. |
 
@@ -27,7 +28,7 @@ Never in the repo. It lives in `<home>` = `$ENDURANCE_COACH_HOME` or `~/.enduran
 - **New adapter:** add `adapters/<name>.md`, link it from `athlete-data.md` § Adapters, and say when it is used only if connected (see `garmin.md`). No `.mcp.json` ships.
 - **New profile or plan key the skill reads:** add it to the schema (required only if every athlete must have it), add an invented value to `examples/triathlete/`, then run `npm run validate:examples` and `npm run validate:local`.
 - **Leak-scan hit on generic text:** confirm the value is skill vocabulary, then `scripts/leak-scan --pin <key path>` and add the printed line to `leak-scan.allow`. Never pin a personal value.
-- **Before any push:** `scripts/leak-scan` must show no `WORKTREE`, `INDEX`, `PATH` or `REF` hit.
+- **Before any push:** the pre-push hook must be on; it blocks on any `leak-scan` hit in the pushed commits, index or worktree. A full `scripts/leak-scan` in a clone with the local `archive/*` branches hits on their pre-squash history; scan a fresh clone of the remote instead.
 
 ## Decisions to respect
 
