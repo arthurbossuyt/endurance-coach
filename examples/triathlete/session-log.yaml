@@ -1,0 +1,20 @@
+# Fictional example session log. Every value is invented.
+schema_version: 0
+entries:
+  - date: 2027-03-06
+    session_ref: 00000000-0000-4000-8000-000000000020
+    rpe: 6
+    feel: Legs heavy for the first 20 min, then fine.
+    fueling:
+      value: Oats 2.5 h before, 2 gels on the ride, stomach 1/10
+      source: athlete
+      date: 2027-03-06
+    notes: Windy loop, kept power in zone 2.
+  - date: 2027-03-07
+    session_ref: 00000000-0000-4000-8000-000000000021
+    rpe: { value: 4, source: athlete, date: 2027-03-07 }
+    feel: 7
+    fueling:
+      breakfast: Toast with jam
+      took: 1 gel at 40 min
+      stomach: 0/10

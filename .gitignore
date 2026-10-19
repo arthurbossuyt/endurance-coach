@@ -1,0 +1,12 @@
+# Athlete data never goes in this repo
+# Anchored to the root so docs/plans/ and examples/*/plans/ stay tracked.
+.endurance-coach/
+/profile.yaml
+/plans/
+/parity/
+/secrets/
+/session-log.yaml
+*.token
+*token*.txt
+node_modules/
+.claude/

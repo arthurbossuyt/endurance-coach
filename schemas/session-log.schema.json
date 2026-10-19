@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/arthurbossuyt/endurance-coach/schemas/session-log.schema.json",
+  "title": "Session log (v0)",
+  "description": "What the athlete reported after each session. Each reported value is either a plain value or { value, source, date } when its origin matters. v0 is a draft: unknown keys are allowed.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["schema_version", "entries"],
+  "properties": {
+    "schema_version": { "const": 0, "description": "Schema version of this file. v0 is the only version so far." },
+    "entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["date"],
+        "properties": {
+          "date": { "$ref": "#/$defs/isoDate", "description": "Date of the session." },
+          "session_ref": { "type": "string", "description": "The planned session this entry belongs to, e.g. a Notion page id." },
+          "rpe": {
+            "description": "Session RPE, 0-10.",
+            "anyOf": [
+              { "$ref": "#/$defs/rpe" },
+              { "$ref": "#/$defs/sourced", "type": "object", "properties": { "value": { "$ref": "#/$defs/rpe" } } }
+            ]
+          },
+          "feel": {
+            "description": "How the session felt, in the athlete's words or a score.",
+            "anyOf": [
+              { "type": ["string", "number"] },
+              { "$ref": "#/$defs/sourced", "type": "object", "properties": { "value": { "type": ["string", "number"] } } }
+            ]
+          },
+          "fueling": {
+            "description": "What was eaten and taken, and how the stomach held up. Free text or a structured object.",
+            "anyOf": [
+              { "type": "string" },
+              { "$ref": "#/$defs/sourced", "type": "object", "properties": { "value": { "type": ["string", "object"] } } },
+              { "type": "object", "properties": { "value": false } }
+            ]
+          },
+          "notes": {
+            "anyOf": [
+              { "type": "string" },
+              { "$ref": "#/$defs/sourced", "type": "object", "properties": { "value": { "type": "string" } } }
+            ]
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "isoDate": { "type": "string", "format": "date" },
+    "rpe": { "type": "number", "minimum": 0, "maximum": 10 },
+    "sourced": {
+      "type": "object",
+      "description": "A reported value with where it came from and when it was recorded.",
+      "required": ["value"],
+      "properties": {
+        "value": true,
+        "source": { "type": "string" },
+        "date": { "$ref": "#/$defs/isoDate" }
+      }
+    }
+  }
+}

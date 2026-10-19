@@ -1,0 +1,155 @@
+# Fictional example athlete: Mira Tanaka-Holt, age-group triathlete.
+# Every value below is invented. Copy this folder to ~/.endurance-coach/
+# (or $ENDURANCE_COACH_HOME) and replace the values with your own.
+schema_version: 0
+
+zones:
+  stale_note: Re-pull zones from Strava after a new field test or every 8 weeks.
+  hr:
+    source: strava
+    date: 2027-01-09
+    method: LTHR field test
+    unit: bpm
+    z1: { max: 129 }
+    z2: { min: 130, max: 144 }
+    z3: { min: 145, max: 155 }
+    z4: { min: 156, max: 166 }
+    z5: { min: 167 }
+  run_pace:
+    source: strava
+    date: 2027-01-09
+    method: 30-minute time trial
+    reference: Indoor track time trial, January
+    unit: m/s
+    z1: { max: 2.55 }
+    z2: { min: 2.56, max: 2.95 }
+    z3: { min: 2.96, max: 3.25 }
+    z4: { min: 3.26, max: 3.52 }
+    z5: { min: 3.53 }
+  ftp:
+    source: athlete
+    date: 2027-01-16
+    value: 204
+    unit: W
+    note: 20-minute indoor test on the smart trainer.
+  power:
+    source: computed
+    date: 2027-01-16
+    model: 7-zone Coggan
+    ftp: 204
+    unit: W
+    z1: { max: 112 }
+    z2: { min: 113, max: 153 }
+    z3: { min: 154, max: 184 }
+    z4: { min: 185, max: 214 }
+    z5: { min: 215, max: 245 }
+    z6: { min: 246, max: 306 }
+    z7: { min: 307 }
+
+devices:
+  source: athlete
+  date: 2027-01-05
+  list:
+    - name: Example GPS watch
+      kind: watch
+      use: Runs, swims and brick sessions
+      owned: true
+      garmin_connected: false
+      counts_as_training: true
+    - name: Example cycling computer
+      kind: cycling computer
+      use: Outdoor and trainer cycling
+      owned: true
+      garmin_connected: false
+      counts_as_training: true
+
+watch_switch:
+  source: athlete
+  date: 2027-01-05
+  switch_date: null
+
+weight:
+  source: athlete
+  date: 2027-01-20
+  value: 61.5
+  unit: kg
+
+daily_carbs:
+  source: coach
+  date: 2027-01-20
+  unit: g/kg
+  moderate_training: { min: 5, max: 7 }
+  carb_load: { min: 8, max: 10 }
+  note: Use the higher end on double-session days.
+
+pantry:
+  source: athlete
+  date: 2027-01-20
+  rule: Only suggest products from this list unless the athlete asks for new ones.
+  products:
+    - product: Fictional Citrus Energy Gel
+      carbs_per_serving: 23 g
+      verified: true
+      notes: Sits well on the bike, test more on the run.
+    - product: Fictional Drink Mix (one bottle)
+      carbs_per_serving: 40 g
+      verified: false
+      notes: Label not checked yet.
+    - product: Rice cake with jam, homemade
+      carbs_per_serving: 30 g
+      verified: false
+
+preferences:
+  source: athlete
+  date: 2027-01-20
+  items:
+    - text: Prefers solid food on bike sessions over 2 hours.
+      source: athlete
+      date: 2027-01-20
+    - text: No caffeine after 3 pm.
+      source: athlete
+      date: 2027-01-20
+
+shoe_rotation:
+  source: athlete
+  date: 2027-01-05
+  rule: Rotate by session type. Ask before suggesting a new pair.
+  by_session_type:
+    - session_type: easy
+      shoe: Cushioned trainer (example)
+    - session_type: tempo
+      shoe: Lightweight trainer (example)
+    - session_type: brick
+      shoe: Race flat with elastic laces (example)
+  race_shoe_mileage_rule: Keep race shoes under 300 km before race day.
+
+notion:
+  source: athlete
+  date: 2027-01-05
+  verified_note: Example IDs only. Replace them with your own workspace IDs.
+  workout_schedule:
+    name: Workout schedule
+    database_id: 00000000-0000-4000-8000-000000000001
+    url: https://www.notion.so/00000000000040008000000000000001
+    data_source_url: collection://00000000-0000-4000-8000-000000000002
+    data_source_id: 00000000-0000-4000-8000-000000000002
+    parent:
+      name: Training
+      page_id: 00000000-0000-4000-8000-000000000003
+      under: Workspace root
+    schema:
+      - property: Name
+        type: title
+      - property: Date
+        type: date
+      - property: Sport
+        type: multi_select
+        options: [Swim, Bike, Run, Strength]
+      - property: Shoe
+        type: select
+        notes: Filled from shoe_rotation.
+  training_hub:
+    view_only: true
+    url: https://www.notion.so/00000000000040008000000000000004
+    this_weeks_schedule_id: 00000000-0000-4000-8000-000000000005
+    active_training_plan_id: 00000000-0000-4000-8000-000000000006

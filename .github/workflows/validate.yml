@@ -1,0 +1,36 @@
+name: validate
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Validate example files against the schemas
+        run: npm run validate:examples
+      - name: Oura script syntax
+        run: bash -n skills/endurance-coach/scripts/oura
+      - name: Oura script on GNU date (Linux)
+        run: |
+          set -euo pipefail
+          script=skills/endurance-coach/scripts/oura
+          # help must work without any token file.
+          ENDURANCE_COACH_HOME="$(mktemp -d)" "$script" help >/dev/null
+          # This runner must have GNU date, so the script must take the date -d branch.
+          if date -v-1d +%F >/dev/null 2>&1; then
+            echo "unexpected: BSD date on this runner" >&2
+            exit 1
+          fi
+          eval "$(sed -n '/^days_ago()/,/^}/p' "$script")"
+          test "$(days_ago 3)" = "$(date -d '3 days ago' +%F)"

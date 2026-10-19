@@ -1,0 +1,7 @@
+{
+  "name": "endurance-coach",
+  "version": "0.1.0",
+  "description": "Evidence-based endurance coaching (training, nutrition, recovery) for triathlon, running and cycling.",
+  "author": { "name": "Arthur Bossuyt" },
+  "license": "MIT"
+}

@@ -1,0 +1,459 @@
+#!/usr/bin/env node
+// Local leak scan. Never runs in CI: it needs the real athlete home.
+//
+//   scripts/leak-scan [repo-path]
+//   scripts/leak-scan --pin <key path>...   print allowlist lines (key + pin)
+//
+// Reads every leaf value of <home>/profile.yaml, <home>/plans/*/plan.yaml and
+// <home>/session-log.yaml when present (<home> = $ENDURANCE_COACH_HOME or
+// ~/.endurance-coach), plus the whole trimmed content of every regular file
+// in <home>/secrets/, and searches, case insensitive, for each one in:
+//   - every blob of every commit in `git rev-list --all`
+//   - every commit message in `git rev-list --all`
+//   - the index, and the working-tree copy of every tracked file and every
+//     untracked file that is not gitignored
+//   - every path name ever committed, in the index or untracked-not-ignored
+//   - every ref name (`git for-each-ref`)
+//
+// Needles: strings of 4+ chars (each line too, for multi-line strings),
+// numbers with 3+ digits (matched on digit boundaries, trailing zeros
+// allowed: 72.5 also hits "72.50", 180 also hits "180.0"), 2-digit numbers
+// next to kg / bpm / W (also as the first bound of a range, "58-62 bpm") or
+// within 20 non-digit chars after the leaf's key name written as words
+// (key `weight.value` -> "weight 82"; generic segments such as value, min,
+// max, kg, unit are skipped for the next one up; "_" matches space or "_"),
+// every UUID / 32-hex id found inside a string (dashed and undashed forms),
+// any Strava athlete id regardless of length, every secret file, the Oura
+// token file at $OURA_TOKEN_FILE and the legacy $HOME/oura token.txt (key
+// secret.oura_token_file, whole content), and for each ISO date leaf
+// (YYYY-MM-DD) its prose forms "<d> <mon>", "<d> <month>", "<mon> <d>",
+// "<month> <d>" (lowercase, d without leading zero, optional st/nd/rd/th
+// after d, word boundaries) and its numeric forms d/m/yyyy, dd/mm/yyyy and
+// m/d/yyyy with "/", "." or "-" (digit boundaries, year required).
+//
+// Output is `<commit>:<path>:<line>  <key path>`, `PATH:<commit>  <key path>`
+// or `REF  <key path>` only. Values are never printed; a path that itself
+// hits is masked in every other label. Key paths start with profile, plan
+// (not the plan id), log or secret.<filename>.
+//
+// scripts/leak-scan.allow lists key paths to skip (generic words), one per
+// line as `<key path>  sha256:<first 16 hex of sha256(trimmed value)>`. An
+// entry whose current value hashes differently is scanned and reported as
+// "allowlist pin changed". It must hold key paths and pins only, never values.
+//
+// Exit: 0 clean, 1 hits found, 2 setup error.
+
+"use strict";
+
+const fs = require("node:fs");
+const path = require("node:path");
+const os = require("node:os");
+const crypto = require("node:crypto");
+const { spawnSync } = require("node:child_process");
+const { homeDir, planFiles, loadYaml } = require("./lib/athlete-home.cjs");
+
+function die(msg) {
+  console.error(`leak-scan: ${msg}`);
+  process.exit(2);
+}
+
+function git(repo, args, input) {
+  const r = spawnSync("git", ["-C", repo, ...args], {
+    input,
+    maxBuffer: 1 << 30,
+  });
+  if (r.status !== 0) die(`git ${args[0]} failed: ${String(r.stderr).trim()}`);
+  return r.stdout;
+}
+
+// ---- inputs -------------------------------------------------------------
+
+const scriptDir = __dirname;
+const argv = process.argv.slice(2);
+const pinKeys = argv[0] === "--pin" ? argv.slice(1) : null;
+if (pinKeys && !pinKeys.length) die("usage: leak-scan --pin <key path>...");
+const repoArg = pinKeys ? null : argv[0];
+const repo = pinKeys
+  ? null
+  : repoArg
+  ? path.resolve(repoArg)
+  : String(
+      spawnSync("git", ["rev-parse", "--show-toplevel"], { encoding: "utf8" }).stdout || ""
+    ).trim();
+if (!pinKeys && (!repo || !fs.existsSync(path.join(repo, ".git")))) die("not a git repo (pass a repo path)");
+
+const home = homeDir();
+const profileFile = path.join(home, "profile.yaml");
+if (!fs.existsSync(profileFile)) die(`no profile.yaml in athlete home (${home})`);
+
+const sources = [{ prefix: "profile", file: profileFile }];
+// Key paths start with "plan", not the plan id: the id itself is a value.
+for (const { file } of planFiles(home)) sources.push({ prefix: "plan", file });
+const logFile = path.join(home, "session-log.yaml");
+if (fs.existsSync(logFile)) sources.push({ prefix: "log", file: logFile });
+
+const pinOf = (v) =>
+  crypto.createHash("sha256").update(String(v).trim()).digest("hex").slice(0, 16);
+
+const KEY_PATH = /^(profile|plan|log)(\.[A-Za-z0-9_]+|\[\d+\])*$/;
+const allowFile = path.join(scriptDir, "leak-scan.allow");
+const allow = new Map(); // key path -> pin
+if (fs.existsSync(allowFile) && !pinKeys) {
+  fs.readFileSync(allowFile, "utf8")
+    .split("\n")
+    .forEach((raw, i) => {
+      const line = raw.replace(/#.*/, "").trim();
+      if (!line) return;
+      const [key, pin, ...rest] = line.split(/\s+/);
+      if (!KEY_PATH.test(key)) die(`leak-scan.allow:${i + 1} is not a key path`);
+      if (!pin) die(`leak-scan.allow:${i + 1} has no pin (run scripts/leak-scan --pin <key path>)`);
+      const m = /^sha256:([0-9a-f]{16})$/.exec(pin);
+      if (!m || rest.length) die(`leak-scan.allow:${i + 1} pin is not sha256:<16 hex>`);
+      allow.set(key, m[1]);
+    });
+}
+const pinChanged = [];
+
+// ---- needles ------------------------------------------------------------
+
+const UUID = /[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}/gi;
+const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const needles = []; // { key, test(content) -> [index...] }
+const seenKeys = new Set();
+
+function substring(key, value) {
+  const n = value.toLowerCase();
+  needles.push({
+    key,
+    find(c) {
+      const out = [];
+      for (let i = c.indexOf(n); i !== -1; i = c.indexOf(n, i + 1)) out.push(i);
+      return out;
+    },
+  });
+}
+
+// The number as written, plus trailing zeros: "72.5" -> 72.5, 72.50;
+// "180" -> 180, 180.0. Ends on a digit boundary (no digit or ".<digit>" after).
+function numRe(text) {
+  const tail = text.includes(".") ? "0*" : "(?:\\.0+)?";
+  return `${escapeRe(text)}${tail}(?![0-9]|\\.[0-9])`;
+}
+
+function number(key, text) {
+  // Digit boundaries: no digit, letter or dot before; see numRe for after.
+  const re = new RegExp(`(?<![0-9A-Za-z.])${numRe(text)}`, "g");
+  needles.push({
+    key,
+    find(c) {
+      const out = [];
+      for (const m of c.matchAll(re)) out.push(m.index);
+      return out;
+    },
+  });
+}
+
+// Two-digit numbers are too common to match bare, but next to a body or zone
+// unit they are personal (body weight in kg, HR in bpm, power in W), also as
+// the first bound of a range ("58-62 bpm", "58–62 bpm").
+// Letter-prefixed forms ("HR142") stay unmatched on purpose: hashes and SHAs.
+function unitNumber(key, text) {
+  const n = escapeRe(text);
+  const tail = text.includes(".") ? "0*" : "(?:\\.0+)?";
+  const re = new RegExp(
+    `(?<![0-9A-Za-z.])${n}${tail}(?:\\s?(kg|bpm|w)|\\s?[-–]\\s?\\d{2,3}\\s?(kg|bpm|w))(?![a-z])`,
+    "g"
+  );
+  needles.push({
+    key,
+    find(c) {
+      const out = [];
+      for (const m of c.matchAll(re)) out.push(m.index);
+      return out;
+    },
+  });
+}
+
+// A 2-digit number shortly after its own key name: "weight 82", "weight: 82".
+// A letter right before the number ("hr58") does not count, as in unitNumber.
+// Generic segments are skipped for the next one up (zones.hr.z2.min -> z2).
+const GENERIC_SEGMENTS = new Set(["profile", "plan", "log", "value", "values", "val",
+  "min", "max", "kg", "kgs", "g", "unit", "units", "bpm", "w", "watts", "low", "high",
+  "lower", "upper", "lo", "hi", "from", "to", "current", "latest", "amount", "avg",
+  "mean", "number", "count"]);
+function keyedNumber(key, text) {
+  const segs = key.replace(/\[\d+\]/g, "").split(".").map((x) => x.toLowerCase());
+  let seg = null;
+  for (let i = segs.length - 1; i >= 0; i--) {
+    if (segs[i].length >= 2 && !/^\d+$/.test(segs[i]) && !GENERIC_SEGMENTS.has(segs[i])) {
+      seg = segs[i];
+      break;
+    }
+  }
+  if (!seg) return;
+  const word = seg.split("_").map(escapeRe).join("[ _]");
+  const re = new RegExp(`(?<![0-9a-z])${word}[^0-9]{0,20}?(?<![0-9a-z.])${numRe(text)}`, "g");
+  needles.push({
+    key,
+    find(c) {
+      const out = [];
+      for (const m of c.matchAll(re)) out.push(m.index);
+      return out;
+    },
+  });
+}
+
+// Prose forms of an ISO date: "<d> <mon>", "<d> <month>", "<mon> <d>", "<month> <d>".
+const MONTHS = ["january", "february", "march", "april", "may", "june", "july",
+  "august", "september", "october", "november", "december"];
+function proseDate(key, iso) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  if (!m || Number(m[2]) < 1 || Number(m[2]) > 12) return;
+  const d = String(Number(m[3]));
+  const month = MONTHS[Number(m[2]) - 1];
+  const mon = month.slice(0, 3);
+  const ord = "(?:st|nd|rd|th)?";
+  const forms = [`${d}${ord}\\s+${mon}`, `${d}${ord}\\s+${month}`, `${mon}\\s+${d}${ord}`, `${month}\\s+${d}${ord}`];
+  const re = new RegExp(`(?<![0-9a-z])(?:${[...new Set(forms)].join("|")})(?![0-9a-z])`, "g");
+  // Numeric forms, year required: d/m/yyyy, dd/mm/yyyy, m/d/yyyy with / . or -.
+  const dd = `0?${d}`;
+  const mm = `0?${String(Number(m[2]))}`;
+  const numeric = [];
+  for (const sep of ["/", "\\.", "-"]) {
+    numeric.push(`${dd}${sep}${mm}${sep}${m[1]}`, `${mm}${sep}${dd}${sep}${m[1]}`);
+  }
+  const reNum = new RegExp(`(?<![0-9])(?:${numeric.join("|")})(?![0-9])`, "g");
+  needles.push({
+    key,
+    find(c) {
+      const out = [];
+      for (const x of c.matchAll(re)) out.push(x.index);
+      for (const x of c.matchAll(reNum)) out.push(x.index);
+      return out;
+    },
+  });
+}
+
+function addLeaf(key, v) {
+  seenKeys.add(key);
+  if (allow.has(key)) {
+    if (allow.get(key) === pinOf(v)) return;
+    pinChanged.push(key); // value changed since it was pinned: scan it
+  }
+  const isStravaId = /strava/i.test(key) && /(^|[._])(athlete_)?id$/i.test(key);
+  if (typeof v === "number" || typeof v === "bigint") {
+    const text = String(v);
+    const digits = text.replace(/\D/g, "").length;
+    if (isStravaId || digits >= 3) number(key, text);
+    else if (digits === 2) {
+      unitNumber(key, text);
+      keyedNumber(key, text);
+    }
+    return;
+  }
+  if (typeof v !== "string") return; // booleans, null
+  const s = v.trim();
+  if (isStravaId && s) substring(key, s);
+  else if (s.length >= 4) substring(key, s);
+  if (s.includes("\n")) {
+    for (const line of s.split("\n").map((l) => l.trim())) {
+      if (line.length >= 4) substring(key, line);
+    }
+  }
+  proseDate(key, s);
+  for (const m of s.matchAll(UUID)) {
+    const hex = m[0].replace(/-/g, "").toLowerCase();
+    const dashed = `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+    substring(key, hex);
+    substring(key, dashed);
+  }
+}
+
+function walk(key, v) {
+  if (Array.isArray(v)) v.forEach((x, i) => walk(`${key}[${i}]`, x));
+  else if (v && typeof v === "object") for (const k of Object.keys(v)) walk(`${key}.${k}`, v[k]);
+  else addLeaf(key, v);
+}
+
+const pinned = new Map();
+for (const { prefix, file } of sources) {
+  let doc;
+  try {
+    doc = loadYaml(file);
+  } catch (err) {
+    die(`${prefix} file is not valid YAML (line ${err.mark?.line ?? "?"})`);
+  }
+  if (pinKeys) {
+    const leaves = new Map();
+    const collect = (k, v) => {
+      if (Array.isArray(v)) v.forEach((x, i) => collect(`${k}[${i}]`, x));
+      else if (v && typeof v === "object") for (const kk of Object.keys(v)) collect(`${k}.${kk}`, v[kk]);
+      else leaves.set(k, v);
+    };
+    collect(prefix, doc);
+    for (const k of pinKeys) if (leaves.has(k)) pinned.set(k, `${k}  sha256:${pinOf(leaves.get(k))}`);
+    continue;
+  }
+  walk(prefix, doc);
+}
+
+if (pinKeys) {
+  // A pin must be committed only for a generic value: short values can be
+  // brute-forced from 16 hex.
+  for (const k of pinKeys) {
+    if (!pinned.has(k)) die(`no leaf at ${k}`);
+    console.log(pinned.get(k));
+  }
+  process.exit(0);
+}
+
+// Secrets: the whole trimmed file content is one needle; the value is never printed.
+const secretValues = new Set();
+function secret(key, f) {
+  const s = fs.readFileSync(f, "utf8").trim();
+  if (!s || secretValues.has(s)) return; // identical content: one needle
+  secretValues.add(s);
+  substring(key, s);
+}
+const secretsDir = path.join(home, "secrets");
+if (fs.existsSync(secretsDir) && fs.statSync(secretsDir).isDirectory()) {
+  for (const name of fs.readdirSync(secretsDir).sort()) {
+    const f = path.join(secretsDir, name);
+    if (!fs.lstatSync(f).isFile()) continue;
+    secret(`secret.${name}`, f);
+  }
+}
+// The Oura token may live outside <home>/secrets: $OURA_TOKEN_FILE, or the
+// legacy $HOME/oura token.txt (until the token move).
+for (const f of [process.env.OURA_TOKEN_FILE, path.join(process.env.HOME || os.homedir(), "oura token.txt")]) {
+  if (f && fs.existsSync(f) && fs.statSync(f).isFile()) secret("secret.oura_token_file", f);
+}
+
+// ---- haystacks ----------------------------------------------------------
+
+const commits = String(git(repo, ["rev-list", "--all", "--reverse"])).split("\n").filter(Boolean);
+
+// blob sha -> [{ where }] ; first commit that holds the blob at each path.
+const blobs = new Map();
+const firstSeen = new Set();
+const pathFirst = new Map(); // path name -> first label (commit, INDEX, WORKTREE)
+for (const c of commits) {
+  const tree = String(git(repo, ["ls-tree", "-r", "-z", c]));
+  for (const entry of tree.split("\0").filter(Boolean)) {
+    const tab = entry.indexOf("\t");
+    const [, type, sha] = entry.slice(0, tab).split(" ");
+    const p = entry.slice(tab + 1);
+    if (!pathFirst.has(p)) pathFirst.set(p, c.slice(0, 7));
+    if (type !== "blob") continue;
+    const id = `${sha} ${p}`;
+    if (firstSeen.has(id)) continue;
+    firstSeen.add(id);
+    if (!blobs.has(sha)) blobs.set(sha, []);
+    blobs.get(sha).push(`${c.slice(0, 7)}:${p}`);
+  }
+}
+for (const entry of String(git(repo, ["ls-files", "-s", "-z"])).split("\0").filter(Boolean)) {
+  const tab = entry.indexOf("\t");
+  const sha = entry.slice(0, tab).split(" ")[1];
+  const p = entry.slice(tab + 1);
+  if (!pathFirst.has(p)) pathFirst.set(p, "INDEX");
+  // Label staged content as INDEX even when the same blob is also in history,
+  // so a hit that is still current never reads as history-only.
+  if (!blobs.has(sha)) blobs.set(sha, []);
+  blobs.get(sha).push(`INDEX:${p}`);
+}
+
+function readBlobs(shas) {
+  const out = new Map();
+  if (!shas.length) return out;
+  const buf = git(repo, ["cat-file", "--batch"], shas.join("\n") + "\n");
+  let pos = 0;
+  for (const sha of shas) {
+    const nl = buf.indexOf(10, pos);
+    const header = buf.slice(pos, nl).toString().split(" ");
+    // A missing object (shallow or partial clone) would shift every later
+    // offset and silently scan garbage: stop instead.
+    if (header[1] === "missing" || !Number.isFinite(Number(header[2]))) {
+      die(`object ${sha.slice(0, 7)} is missing (shallow or partial clone?); scan a full clone`);
+    }
+    const size = Number(header[2]);
+    out.set(sha, buf.slice(nl + 1, nl + 1 + size));
+    pos = nl + 1 + size + 1;
+  }
+  return out;
+}
+
+const haystacks = []; // { labels: [...], content }
+const contents = readBlobs([...blobs.keys()]);
+for (const [sha, labels] of blobs) haystacks.push({ labels, buf: contents.get(sha) });
+
+// Tracked plus untracked-but-not-ignored files: a new file is scanned before it is added.
+for (const p of String(git(repo, ["ls-files", "-co", "--exclude-standard", "-z"])).split("\0").filter(Boolean)) {
+  if (!pathFirst.has(p)) pathFirst.set(p, "WORKTREE");
+  const f = path.join(repo, p);
+  if (fs.existsSync(f) && fs.statSync(f).isFile()) {
+    haystacks.push({ labels: [`WORKTREE:${p}`], buf: fs.readFileSync(f) });
+  }
+}
+
+const log = String(git(repo, ["log", "--all", "--format=%H%x00%B%x01"]));
+for (const rec of log.split("\x01")) {
+  const [h, body] = rec.replace(/^\n/, "").split("\0");
+  if (h && body) haystacks.push({ labels: [`${h.slice(0, 7)}:COMMIT_MSG`], buf: Buffer.from(body) });
+}
+
+// ---- scan ---------------------------------------------------------------
+
+const hits = [];
+const hitKeys = new Set();
+
+// Names: every path name and ref name. A path that hits is masked in the
+// blob and worktree labels below, so the value never reaches the output.
+const masked = new Set();
+const names = [...[...pathFirst].map(([p, first]) => ({ name: p, label: `PATH:${first}`, isPath: true }))];
+for (const r of String(git(repo, ["for-each-ref", "--format=%(refname)"])).split("\n").filter(Boolean)) {
+  names.push({ name: r, label: "REF", isPath: false });
+}
+for (const { name, label, isPath } of names) {
+  const c = name.toLowerCase();
+  for (const n of needles) {
+    if (!n.find(c).length) continue;
+    hits.push(`${label}  ${n.key}`);
+    hitKeys.add(n.key);
+    if (isPath) masked.add(name);
+  }
+}
+const maskLabel = (label) => {
+  const i = label.indexOf(":");
+  return masked.has(label.slice(i + 1)) ? `${label.slice(0, i)}:<masked path>` : label;
+};
+
+let binary = 0;
+for (const { labels, buf } of haystacks) {
+  if (buf.includes(0)) {
+    binary++;
+    continue;
+  }
+  const c = buf.toString("utf8").toLowerCase();
+  for (const n of needles) {
+    const idx = n.find(c);
+    if (!idx.length) continue;
+    const lines = new Set(idx.map((i) => c.slice(0, i).split("\n").length));
+    for (const label of labels) {
+      for (const line of lines) hits.push(`${maskLabel(label)}:${line}  ${n.key}`);
+    }
+    hitKeys.add(n.key);
+  }
+}
+
+const stale = [...allow.keys()].filter((k) => !seenKeys.has(k));
+const uniq = [...new Set(hits)];
+for (const h of uniq) console.log(`HIT ${h}`);
+console.log(
+  `leak-scan: ${needles.length} needles, ${commits.length} commits, ` +
+    `${haystacks.length - binary} text haystacks (${binary} binary skipped), ` +
+    `${names.length} path/ref names, ${allow.size} allowlisted key paths, ${uniq.length} hits on ${hitKeys.size} key paths`
+);
+for (const k of pinChanged) console.log(`leak-scan: allowlist pin changed: ${k}`);
+if (stale.length) console.log(`leak-scan: allowlist key paths not in athlete files: ${stale.join(", ")}`);
+process.exit(uniq.length ? 1 : 0);

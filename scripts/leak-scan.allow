@@ -1,0 +1,87 @@
+# Key paths that scripts/leak-scan skips. Key paths only, never values.
+# Only generic skill vocabulary belongs here. Personal values (products,
+# shoes, names, IDs, weights, zones, dates, races) must never be listed.
+# Plan key paths start with "plan", not the plan id.
+# Format: `<key path>  sha256:<first 16 hex of sha256(trimmed value)>`.
+# The pin ties each entry to its value: if the YAML is reordered or the value
+# changes, the entry stops matching and the key is scanned again. Get the line
+# with `scripts/leak-scan --pin <key path>`. Never pin a personal value: short
+# values can be brute-forced from the pin.
+
+# provenance labels (*.source)
+profile.zones.hr.source  sha256:08f0be883564cbf2
+profile.zones.run_pace.source  sha256:08f0be883564cbf2
+profile.zones.ftp.source  sha256:c66790da5943c446
+profile.zones.power.source  sha256:08f0be883564cbf2
+profile.devices.source  sha256:c66790da5943c446
+profile.watch_switch.source  sha256:c66790da5943c446
+profile.weight.source  sha256:c66790da5943c446
+profile.daily_carbs.source  sha256:08f0be883564cbf2
+profile.pantry.source  sha256:c66790da5943c446
+profile.preferences.source  sha256:c66790da5943c446
+profile.preferences.items[0].source  sha256:c66790da5943c446
+profile.preferences.items[1].source  sha256:c66790da5943c446
+profile.preferences.items[2].source  sha256:c66790da5943c446
+profile.shoe_rotation.source  sha256:c66790da5943c446
+profile.notion.source  sha256:08f0be883564cbf2
+plan.lock.source  sha256:c66790da5943c446
+plan.race.source  sha256:c66790da5943c446
+plan.notion.source  sha256:08f0be883564cbf2
+plan.rationale.source  sha256:c66790da5943c446
+plan.ramp_windows.source  sha256:c66790da5943c446
+plan.dated_extras.source  sha256:c66790da5943c446
+plan.race_dose_cap.source  sha256:c66790da5943c446
+plan.weekly_rhythm.source  sha256:c66790da5943c446
+plan.past_races.source  sha256:c66790da5943c446
+
+# Notion workout schedule: database, parent page, property names, types, options
+profile.notion.workout_schedule.name  sha256:dbc4db7aa87a834b
+profile.notion.workout_schedule.parent.name  sha256:bd6c03ff6b547a19
+profile.notion.workout_schedule.parent.under  sha256:55898449eb74fb2e
+profile.notion.workout_schedule.schema[0].property  sha256:a4949e2c96de2668
+profile.notion.workout_schedule.schema[0].type  sha256:aaf2320646108059
+profile.notion.workout_schedule.schema[1].property  sha256:9a085dd854f03306
+profile.notion.workout_schedule.schema[1].type  sha256:77cd43391153d408
+profile.notion.workout_schedule.schema[1].options[0]  sha256:cbe1b7d7f446e134
+profile.notion.workout_schedule.schema[1].options[1]  sha256:518653530449cca8
+profile.notion.workout_schedule.schema[1].options[2]  sha256:dd4fa375c70c4e42
+profile.notion.workout_schedule.schema[2].property  sha256:99c40ab405926cb5
+profile.notion.workout_schedule.schema[2].type  sha256:0e87632cd46bd490
+profile.notion.workout_schedule.schema[3].property  sha256:d103a1380b8c77c3
+profile.notion.workout_schedule.schema[3].type  sha256:6fe9eb8f468b5843
+profile.notion.workout_schedule.schema[4].property  sha256:9f5f6d1e36384c99
+profile.notion.workout_schedule.schema[4].type  sha256:fc8fbb48a3a16bfd
+profile.notion.workout_schedule.schema[5].property  sha256:c7b74ef28d7f7f04
+profile.notion.workout_schedule.schema[5].type  sha256:b1a36d25d9633ed2
+
+# session types, weekday slots, topics
+plan.dated_extras.items[0].session_type  sha256:bdba817250213c63
+plan.dated_extras.items[1].session_type  sha256:6b5cd71882e791af
+plan.weekly_rhythm.days.sun  sha256:9403ea0b44760e3b
+plan.weekly_rhythm.gowod.options[0]  sha256:f5dcf0be62e222c4
+plan.weekly_rhythm.gowod.options[1]  sha256:f9b5b9db79dec543
+plan.weekly_rhythm.gowod.options[2]  sha256:2a877e8622149d9b
+plan.weekly_rhythm.gowod.options[3]  sha256:7e6d5f4656428fbb
+plan.rationale.covers[1]  sha256:01b37bbab9622cc8
+
+# device names equal to a shipped adapter name, generic device use, units
+profile.devices.list[0].name  sha256:f82eba92ddb98d8b
+profile.devices.list[3].name  sha256:ea813def3a9adc96
+profile.devices.list[2].use  sha256:853309f90c6fdec8
+profile.daily_carbs.unit  sha256:4617e6d48df7dfc9
+
+# generic method and product-category labels
+profile.zones.hr.method  sha256:1de11a3b64001448
+profile.pantry.products[3].product  sha256:f9782dd7999dc14b
+
+# textbook Coggan %FTP boundaries (same for every athlete, not personal watts)
+profile.zones.power.thresholds_pct[4]  sha256:2abaca4911e68fa9
+profile.zones.power.thresholds_pct[5]  sha256:9ae2bdd7beedc2e7
+
+# Notion schema notes and rules equal to the generic rule text in adapters/notion.md
+profile.notion.workout_schedule.schema[0].notes  sha256:84e24ca0ca237b9a
+profile.notion.workout_schedule.schema[2].notes  sha256:52e6275318a5efd7
+profile.notion.workout_schedule.schema[3].notes  sha256:424921826999aa31
+profile.notion.training_hub.note  sha256:7cb04c85129c7d27
+plan.dated_extras.vault_rule  sha256:76e160bbee0ee4d5
+plan.weekly_rhythm.gowod.note  sha256:b0f92a6759e0707a

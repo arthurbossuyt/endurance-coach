@@ -1,0 +1,212 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/arthurbossuyt/endurance-coach/schemas/plan.schema.json",
+  "title": "Training plan (v0)",
+  "description": "Block-specific rules read by the endurance-coach skill from <home>/plans/<id>/plan.yaml. Required keys are the top-level keys the skill names in references/athlete-data.md. v0 is a draft: unknown keys are allowed.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "schema_version",
+    "id",
+    "locked",
+    "race",
+    "notion",
+    "rationale",
+    "ramp_windows",
+    "dated_extras",
+    "race_dose_cap",
+    "weekly_rhythm",
+    "past_races"
+  ],
+  "properties": {
+    "schema_version": { "const": 0, "description": "Schema version of this file. v0 is the only version so far." },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$",
+      "description": "Plan id, the same as its folder name under plans/."
+    },
+    "locked": {
+      "type": "boolean",
+      "description": "true = never add, move or rewrite a session without the athlete's explicit yes (adapters/notion.md § Locked plan)."
+    },
+    "lock": {
+      "allOf": [{ "$ref": "#/$defs/provenance" }],
+      "type": "object",
+      "properties": {
+        "allows_without_yes": {
+          "type": "array",
+          "description": "Writes still allowed on a locked plan.",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "race": {
+      "allOf": [{ "$ref": "#/$defs/provenance" }],
+      "type": "object",
+      "required": ["name", "race_date"],
+      "properties": {
+        "name": { "type": "string" },
+        "race_date": { "$ref": "#/$defs/isoDate" },
+        "goal": { "type": "string" },
+        "goal_pace": {
+          "type": ["string", "number", "null"],
+          "description": "Null until set after the sessions in goal_pace_set_after."
+        },
+        "goal_pace_set_after": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "session": { "type": "string" },
+              "date": { "$ref": "#/$defs/isoDate" }
+            }
+          }
+        }
+      }
+    },
+    "notion": {
+      "allOf": [{ "$ref": "#/$defs/provenance" }],
+      "type": "object",
+      "description": "Pointer to the plan's sessions in Notion. Sessions are Notion state, not copied here.",
+      "required": ["training_plans_row"],
+      "properties": {
+        "sessions_database": { "type": "string" },
+        "training_plans_row": {
+          "type": "object",
+          "required": ["id"],
+          "properties": {
+            "id": { "type": "string" },
+            "name": { "type": "string" }
+          }
+        },
+        "sessions_filter": { "type": "string" }
+      }
+    },
+    "rationale": {
+      "allOf": [{ "$ref": "#/$defs/provenance" }],
+      "type": "object",
+      "required": ["vault_path"],
+      "properties": {
+        "vault_path": { "type": "string", "description": "Where the plan's reasoning lives. Link, don't copy." },
+        "covers": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "ramp_windows": {
+      "allOf": [{ "$ref": "#/$defs/provenance" }],
+      "type": "object",
+      "description": "Gut-training ramp: fuelling windows by date.",
+      "required": ["windows"],
+      "properties": {
+        "period": { "$ref": "#/$defs/dateSpan" },
+        "applies_to": { "type": "string" },
+        "gel": { "type": "string", "description": "Gel size used in the windows." },
+        "windows": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["from", "to"],
+            "properties": {
+              "label": { "type": "string" },
+              "from": { "$ref": "#/$defs/isoDate" },
+              "to": { "$ref": "#/$defs/isoDate" },
+              "long_run_gels": { "type": "string" },
+              "breakfast": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "dated_extras": {
+      "allOf": [{ "$ref": "#/$defs/provenance" }],
+      "type": "object",
+      "required": ["items"],
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "description": "Matches a session by weekday, date or from-to span, optionally narrowed by session_type.",
+            "required": ["text"],
+            "properties": {
+              "when": { "type": "string" },
+              "weekday": { "type": "string" },
+              "date": { "$ref": "#/$defs/isoDate" },
+              "from": { "$ref": "#/$defs/isoDate" },
+              "to": { "$ref": "#/$defs/isoDate" },
+              "session_type": { "type": "string" },
+              "text": { "type": "string", "description": "What to add. <...> placeholders are filled from profile.yaml." }
+            }
+          }
+        },
+        "vault_rule": { "type": "string" }
+      }
+    },
+    "race_dose_cap": {
+      "allOf": [{ "$ref": "#/$defs/provenance" }],
+      "type": "object",
+      "required": ["min", "max", "unit"],
+      "properties": {
+        "min": { "type": "number" },
+        "max": { "type": "number" },
+        "unit": { "type": "string" }
+      }
+    },
+    "weekly_rhythm": {
+      "allOf": [{ "$ref": "#/$defs/provenance" }],
+      "type": "object",
+      "required": ["days"],
+      "properties": {
+        "days": {
+          "type": "object",
+          "properties": {
+            "mon": { "type": "string" },
+            "tue": { "type": "string" },
+            "wed": { "type": "string" },
+            "thu": { "type": "string" },
+            "fri": { "type": "string" },
+            "sat": { "type": "string" },
+            "sun": { "type": "string" }
+          }
+        }
+      }
+    },
+    "past_races": {
+      "allOf": [{ "$ref": "#/$defs/provenance" }],
+      "type": "object",
+      "required": ["races"],
+      "properties": {
+        "races": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "race_date"],
+            "properties": {
+              "name": { "type": "string" },
+              "race_date": { "$ref": "#/$defs/isoDate" },
+              "result": { "type": "string" },
+              "note": { "type": "string" }
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "isoDate": { "type": "string", "format": "date" },
+    "provenance": {
+      "type": "object",
+      "description": "Where a block came from and when it was last set.",
+      "properties": {
+        "source": { "type": "string" },
+        "date": { "$ref": "#/$defs/isoDate" }
+      }
+    },
+    "dateSpan": {
+      "type": "object",
+      "properties": {
+        "from": { "$ref": "#/$defs/isoDate" },
+        "to": { "$ref": "#/$defs/isoDate" }
+      }
+    }
+  }
+}

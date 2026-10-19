@@ -1,0 +1,103 @@
+# Fictional example plan for the example athlete. Every value is invented.
+schema_version: 0
+id: lakeside-2027
+locked: false
+
+lock:
+  source: coach
+  date: 2027-02-01
+  allows_without_yes: [fuel lines, fuel log entries]
+
+race:
+  source: athlete
+  date: 2027-02-01
+  name: Lakeside Middle Distance (fictional)
+  race_date: 2027-06-20
+  goal: Finish strong and run the half marathon without walking.
+  goal_pace: null
+  goal_pace_set_after:
+    - session: Brick test, 60 km bike + 10 km run
+      date: 2027-05-08
+
+notion:
+  source: athlete
+  date: 2027-02-01
+  sessions_database: Workout schedule
+  training_plans_row:
+    id: 00000000-0000-4000-8000-000000000010
+    name: Lakeside 2027
+  sessions_filter: Training Plan relation contains this row
+
+rationale:
+  source: coach
+  date: 2027-02-01
+  vault_path: notes/lakeside-2027-plan.md
+  covers: [periodisation, gut training, taper]
+
+ramp_windows:
+  source: coach
+  date: 2027-02-01
+  period: { from: 2027-03-01, to: 2027-06-13 }
+  applies_to: Long bike sessions, long runs and brick sessions, on top of the matrix rows.
+  gel: 23 g carbohydrate
+  windows:
+    - label: Base
+      from: 2027-03-01
+      to: 2027-04-04
+      long_run_gels: 1 gel every 40 min
+      breakfast: Oats with apple, 2.5 h before
+    - label: Build
+      from: 2027-04-05
+      to: 2027-05-16
+      long_run_gels: 1 gel every 30 min
+      breakfast: Bagel with honey, 2.5 h before
+    - label: Race rehearsal
+      from: 2027-05-17
+      to: 2027-06-13
+      long_run_gels: Race plan, 1 gel every 25 min
+      breakfast: Race-day breakfast, 3 h before
+
+dated_extras:
+  source: coach
+  date: 2027-02-01
+  items:
+    - when: weekly
+      weekday: wed
+      session_type: easy
+      text: Gut rep, take one gel at minute 20.
+    - when: once
+      date: 2027-05-08
+      text: Sweat test, weigh before and after.
+    - when: span
+      from: 2027-06-17
+      to: 2027-06-19
+      text: Carb load, <carb_load> g/kg a day.
+  vault_rule: Other dated gut items stay in the vault note.
+
+race_dose_cap:
+  source: coach
+  date: 2027-02-01
+  min: 60
+  max: 80
+  unit: g/h
+
+weekly_rhythm:
+  source: coach
+  date: 2027-02-01
+  days:
+    mon: Rest or mobility
+    tue: Swim technique + easy run
+    wed: Bike intervals
+    thu: Swim endurance + tempo run
+    fri: Rest
+    sat: Long ride, short brick run
+    sun: Long run
+
+past_races:
+  source: athlete
+  date: 2027-02-01
+  races:
+    - name: Riverside Sprint Triathlon (fictional)
+      race_date: 2026-08-30
+      result: 1:24:10
+      note: Faded on the run, under-fuelled on the bike.

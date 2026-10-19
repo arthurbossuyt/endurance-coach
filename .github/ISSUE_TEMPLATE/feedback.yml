@@ -1,0 +1,29 @@
+name: Coach feedback
+description: Tell us what you asked the coach and how the answer missed.
+labels: [feedback]
+body:
+  - type: textarea
+    id: asked
+    attributes:
+      label: What did you ask?
+    validations:
+      required: true
+  - type: textarea
+    id: said
+    attributes:
+      label: What did the coach say?
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect instead?
+    validations:
+      required: true
+  - type: dropdown
+    id: sport
+    attributes:
+      label: Sport
+      options: [Running, Cycling, Triathlon, Swimming, Other]
+    validations:
+      required: true

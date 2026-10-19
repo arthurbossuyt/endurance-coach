@@ -1,0 +1,100 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+HOME_DIR="${ENDURANCE_COACH_HOME:-$HOME/.endurance-coach}"
+DEFAULT_TOKEN_FILE="$HOME_DIR/secrets/oura"
+TOKEN_FILE="${OURA_TOKEN_FILE:-$DEFAULT_TOKEN_FILE}"
+BASE="https://api.ouraring.com/v2"
+
+die() { echo "oura: $*" >&2; exit 1; }
+
+TOKEN=""
+# Loaded on the first request, so help and usage errors work without a token.
+load_token() {
+  [ -n "$TOKEN" ] && return
+  [ -f "$TOKEN_FILE" ] || die "token file not found: $TOKEN_FILE (set OURA_TOKEN_FILE or create $DEFAULT_TOKEN_FILE)"
+  TOKEN="$(tr -d ' \t\r\n' < "$TOKEN_FILE")"
+  [ -n "$TOKEN" ] || die "token file is empty: $TOKEN_FILE"
+}
+
+days_ago() {
+  if date -v-1d +%F >/dev/null 2>&1; then date -v-"$1"d +%F
+  else date -d "$1 days ago" +%F; fi
+}
+today() { date +%F; }
+
+pretty() { if command -v jq >/dev/null 2>&1; then jq .; else cat; fi; }
+
+FAIL_FLAG=""
+# --fail-with-body needs curl >= 7.76 (not on Debian 11 / Ubuntu 20.04): fall back to --fail.
+fail_flag() {
+  [ -n "$FAIL_FLAG" ] && return
+  # Captured, not piped into grep -q: with pipefail an early grep exit can SIGPIPE curl.
+  local help
+  help="$(curl --help all 2>/dev/null || true)"
+  case "$help" in
+    *--fail-with-body*) FAIL_FLAG="--fail-with-body" ;;
+    *) FAIL_FLAG="--fail" ;;
+  esac
+}
+
+req() {
+  local path="$1" query="${2:-}" url
+  load_token
+  fail_flag
+  url="$BASE/$path"
+  [ -n "$query" ] && url="$url?$query"
+  # Header on stdin (printf is a builtin), so the token never shows in ps.
+  printf 'Authorization: Bearer %s\n' "$TOKEN" | curl -sS "$FAIL_FLAG" --max-time 30 -H @- "$url"
+}
+
+daily() {
+  local ep="$1" back="$2"; shift 2
+  local start="${1:-$(days_ago "$back")}" end="${2:-$(today)}"
+  req "usercollection/$ep" "start_date=$start&end_date=$end" | pretty
+}
+
+cmd="${1:-help}"; shift || true
+
+case "$cmd" in
+  profile)      req "usercollection/personal_info" | pretty ;;
+  sleep)        daily daily_sleep 7 "$@" ;;
+  readiness)    daily daily_readiness 7 "$@" ;;
+  activity)     daily daily_activity 7 "$@" ;;
+  sleep-detail) daily sleep 7 "$@" ;;
+  workout)      daily workout 14 "$@" ;;
+  spo2)         daily daily_spo2 7 "$@" ;;
+  stress)       daily daily_stress 7 "$@" ;;
+  hr)
+    local_start="${1:-$(days_ago 1)}T00:00:00-00:00"
+    local_end="${2:-$(today)}T23:59:59-00:00"
+    req "usercollection/heartrate" "start_datetime=$local_start&end_datetime=$local_end" | pretty
+    ;;
+  raw)
+    [ $# -ge 1 ] || die "usage: oura raw <endpoint-path> [query-string]"
+    req "$1" "${2:-}" | pretty
+    ;;
+  help|-h|--help)
+    cat <<'EOF'
+oura — query the Oura v2 API
+
+Usage:
+  oura profile                     Personal info
+  oura sleep        [start] [end]  Daily sleep scores      (default: last 7d)
+  oura readiness    [start] [end]  Daily readiness scores  (default: last 7d)
+  oura activity     [start] [end]  Daily activity          (default: last 7d)
+  oura sleep-detail [start] [end]  Detailed sleep periods  (default: last 7d)
+  oura workout      [start] [end]  Workouts                (default: last 14d)
+  oura spo2         [start] [end]  Daily SpO2              (default: last 7d)
+  oura stress       [start] [end]  Daily stress            (default: last 7d)
+  oura hr           [start] [end]  Heart rate samples      (default: last 1d)
+  oura raw <path> [query]          Any endpoint, e.g.
+                                     oura raw usercollection/tag
+
+Dates are YYYY-MM-DD. Output is pretty-printed via jq when available.
+Token read from $OURA_TOKEN_FILE, else
+${ENDURANCE_COACH_HOME:-$HOME/.endurance-coach}/secrets/oura.
+EOF
+    ;;
+  *) die "unknown command: $cmd (try: oura help)" ;;
+esac

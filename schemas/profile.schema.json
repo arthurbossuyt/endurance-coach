@@ -1,0 +1,270 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/arthurbossuyt/endurance-coach/schemas/profile.schema.json",
+  "title": "Athlete profile (v0)",
+  "description": "Stable athlete facts read by the endurance-coach skill from <home>/profile.yaml. Required keys are the top-level keys the skill names in references/athlete-data.md. v0 is a draft: unknown keys are allowed so profiles can grow before the schema does.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "schema_version",
+    "zones",
+    "devices",
+    "watch_switch",
+    "weight",
+    "daily_carbs",
+    "pantry",
+    "preferences",
+    "shoe_rotation",
+    "notion"
+  ],
+  "properties": {
+    "schema_version": { "const": 0, "description": "Schema version of this file. v0 is the only version so far." },
+    "zones": {
+      "type": "object",
+      "description": "Training zones. Read via adapters/strava.md.",
+      "properties": {
+        "stale_note": { "type": "string", "description": "When to re-pull zones." },
+        "hr": {
+          "description": "Heart-rate zones, bpm.",
+          "type": "object",
+          "allOf": [{ "$ref": "#/$defs/provenance" }, { "$ref": "#/$defs/zoneBands" }],
+          "properties": {
+            "method": { "type": "string", "description": "How the zones were derived, e.g. a field test." },
+            "unit": { "type": "string" }
+          }
+        },
+        "run_pace": {
+          "description": "Run pace zones, m/s.",
+          "type": "object",
+          "allOf": [{ "$ref": "#/$defs/provenance" }, { "$ref": "#/$defs/zoneBands" }],
+          "properties": {
+            "method": { "type": "string" },
+            "reference": { "type": "string", "description": "Reference effort the pace zones come from." },
+            "unit": { "type": "string" }
+          }
+        },
+        "ftp": {
+          "allOf": [{ "$ref": "#/$defs/provenance" }],
+          "type": "object",
+          "required": ["value"],
+          "properties": {
+            "value": { "type": "number", "exclusiveMinimum": 0 },
+            "unit": { "type": "string" },
+            "note": { "type": "string", "description": "Where the FTP came from." },
+            "stale_strava_ftp": {
+              "type": "object",
+              "description": "Set while Strava still reports an outdated FTP.",
+              "properties": {
+                "value": { "type": "number" },
+                "unit": { "type": "string" },
+                "note": { "type": "string" }
+              }
+            }
+          }
+        },
+        "power": {
+          "description": "Recalculated power zones, W.",
+          "type": "object",
+          "allOf": [{ "$ref": "#/$defs/provenance" }, { "$ref": "#/$defs/zoneBands" }],
+          "properties": {
+            "model": { "type": "string" },
+            "ftp": { "type": "number" },
+            "thresholds_pct": { "type": "array", "items": { "type": "number" } },
+            "unit": { "type": "string" }
+          }
+        }
+      }
+    },
+    "devices": {
+      "allOf": [{ "$ref": "#/$defs/provenance" }],
+      "type": "object",
+      "required": ["list"],
+      "properties": {
+        "list": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name"],
+            "properties": {
+              "name": { "type": "string" },
+              "kind": { "type": "string", "description": "e.g. watch, cycling computer, ring." },
+              "use": { "type": "string" },
+              "owned": { "type": "boolean" },
+              "garmin_connected": { "type": "boolean" },
+              "counts_as_training": { "type": "boolean", "description": "true = activities recorded on this device count as training. Missing = they do not." }
+            }
+          }
+        }
+      }
+    },
+    "watch_switch": {
+      "allOf": [{ "$ref": "#/$defs/provenance" }],
+      "type": "object",
+      "required": ["switch_date"],
+      "properties": {
+        "switch_date": {
+          "anyOf": [{ "$ref": "#/$defs/isoDate" }, { "type": "null" }],
+          "description": "Date the activity source switches from Strava to Garmin. Null = not switched."
+        }
+      }
+    },
+    "weight": {
+      "allOf": [{ "$ref": "#/$defs/provenance" }],
+      "type": "object",
+      "required": ["value", "unit"],
+      "properties": {
+        "value": { "type": "number", "exclusiveMinimum": 0 },
+        "unit": { "type": "string" }
+      }
+    },
+    "daily_carbs": {
+      "allOf": [{ "$ref": "#/$defs/provenance" }],
+      "type": "object",
+      "description": "Daily carbohydrate anchors in g/kg by load.",
+      "required": ["unit", "moderate_training", "carb_load"],
+      "properties": {
+        "unit": { "type": "string" },
+        "moderate_training": { "$ref": "#/$defs/range" },
+        "carb_load": { "$ref": "#/$defs/range" },
+        "note": { "type": "string" }
+      }
+    },
+    "pantry": {
+      "allOf": [{ "$ref": "#/$defs/provenance" }],
+      "type": "object",
+      "required": ["products"],
+      "properties": {
+        "rule": { "type": "string" },
+        "products": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["product"],
+            "properties": {
+              "product": { "type": "string" },
+              "carbs_per_serving": { "type": ["string", "number"] },
+              "verified": { "type": "boolean" },
+              "notes": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "preferences": {
+      "allOf": [{ "$ref": "#/$defs/provenance" }],
+      "type": "object",
+      "required": ["items"],
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "allOf": [{ "$ref": "#/$defs/provenance" }],
+            "type": "object",
+            "required": ["text"],
+            "properties": { "text": { "type": "string" } }
+          }
+        }
+      }
+    },
+    "shoe_rotation": {
+      "allOf": [{ "$ref": "#/$defs/provenance" }],
+      "type": "object",
+      "required": ["by_session_type"],
+      "properties": {
+        "rule": { "type": "string" },
+        "by_session_type": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["session_type", "shoe"],
+            "properties": {
+              "session_type": { "type": "string" },
+              "shoe": { "type": "string" }
+            }
+          }
+        },
+        "race_shoe_mileage_rule": { "type": "string" }
+      }
+    },
+    "notion": {
+      "allOf": [{ "$ref": "#/$defs/provenance" }],
+      "type": "object",
+      "description": "Notion IDs. Read via adapters/notion.md.",
+      "required": ["workout_schedule"],
+      "properties": {
+        "verified_note": { "type": "string" },
+        "workout_schedule": {
+          "type": "object",
+          "required": ["database_id", "data_source_id"],
+          "properties": {
+            "name": { "type": "string" },
+            "database_id": { "type": "string" },
+            "url": { "type": "string" },
+            "data_source_url": { "type": "string" },
+            "data_source_id": { "type": "string" },
+            "parent": {
+              "type": "object",
+              "properties": {
+                "name": { "type": "string" },
+                "page_id": { "type": "string" },
+                "under": { "type": "string" }
+              }
+            },
+            "schema": {
+              "type": "array",
+              "description": "Properties of the Workout schedule database.",
+              "items": {
+                "type": "object",
+                "required": ["property", "type"],
+                "properties": {
+                  "property": { "type": "string" },
+                  "type": { "type": "string" },
+                  "options": { "type": "array", "items": { "type": "string" } },
+                  "target": { "type": "string" },
+                  "notes": { "type": "string" },
+                  "added": { "$ref": "#/$defs/isoDate" }
+                }
+              }
+            }
+          }
+        },
+        "training_hub": {
+          "type": "object",
+          "description": "View-only dashboard.",
+          "properties": {
+            "view_only": { "type": "boolean" },
+            "url": { "type": "string" },
+            "this_weeks_schedule_id": { "type": "string" },
+            "active_training_plan_id": { "type": "string" },
+            "note": { "type": "string" }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "isoDate": { "type": "string", "format": "date" },
+    "provenance": {
+      "type": "object",
+      "description": "Where a block came from and when it was last set.",
+      "properties": {
+        "source": { "type": "string" },
+        "date": { "$ref": "#/$defs/isoDate" }
+      }
+    },
+    "range": {
+      "type": "object",
+      "properties": {
+        "min": { "type": "number" },
+        "max": { "type": "number" }
+      }
+    },
+    "zoneBands": {
+      "type": "object",
+      "description": "Zones keyed z1..z9, each with an optional min and max.",
+      "patternProperties": {
+        "^z[1-9]$": { "$ref": "#/$defs/range" }
+      }
+    }
+  }
+}

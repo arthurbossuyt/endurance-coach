@@ -1,0 +1,16 @@
+{
+  "name": "endurance-coach-marketplace",
+  "owner": { "name": "Arthur Bossuyt" },
+  "metadata": { "description": "Plugin distribution for endurance-coach", "version": "0.1.0" },
+  "plugins": [
+    {
+      "name": "endurance-coach",
+      "source": "./",
+      "description": "Evidence-based endurance coaching (training, nutrition, recovery) for triathlon, running and cycling.",
+      "version": "0.1.0",
+      "author": { "name": "Arthur Bossuyt" },
+      "license": "MIT",
+      "category": "health"
+    }
+  ]
+}
