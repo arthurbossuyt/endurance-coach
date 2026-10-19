@@ -60,6 +60,12 @@ npm run validate:examples
 
 To check your own files against the same schemas, run `npm run validate:local`. It reads your athlete home, so run it on your machine only.
 
+If you push changes from a machine that has an athlete home, turn on the pre-push hook once per clone. It scans every commit you push for values from your profile and plans and blocks the push on a hit:
+
+```
+git config core.hooksPath .githooks
+```
+
 ## License
 
 MIT. See `LICENSE`.

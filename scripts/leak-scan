@@ -2,14 +2,16 @@
 // Local leak scan. Never runs in CI: it needs the real athlete home.
 //
 //   scripts/leak-scan [repo-path]
+//   scripts/leak-scan --revs <rev-list args>...   only these commits (pre-push)
 //   scripts/leak-scan --pin <key path>...   print allowlist lines (key + pin)
 //
 // Reads every leaf value of <home>/profile.yaml, <home>/plans/*/plan.yaml and
 // <home>/session-log.yaml when present (<home> = $ENDURANCE_COACH_HOME or
 // ~/.endurance-coach), plus the whole trimmed content of every regular file
 // in <home>/secrets/, and searches, case insensitive, for each one in:
-//   - every blob of every commit in `git rev-list --all`
-//   - every commit message in `git rev-list --all`
+//   - every blob of every commit in `git rev-list --all` (with --revs: in
+//     `git rev-list <rev-list args>`, run in the current repo)
+//   - every commit message of those same commits
 //   - the index, and the working-tree copy of every tracked file and every
 //     untracked file that is not gitignored
 //   - every path name ever committed, in the index or untracked-not-ignored
@@ -72,7 +74,9 @@ const scriptDir = __dirname;
 const argv = process.argv.slice(2);
 const pinKeys = argv[0] === "--pin" ? argv.slice(1) : null;
 if (pinKeys && !pinKeys.length) die("usage: leak-scan --pin <key path>...");
-const repoArg = pinKeys ? null : argv[0];
+const revs = argv[0] === "--revs" ? argv.slice(1) : ["--all"];
+if (argv[0] === "--revs" && !revs.length) die("usage: leak-scan --revs <rev-list args>...");
+const repoArg = pinKeys || argv[0] === "--revs" ? null : argv[0];
 const repo = pinKeys
   ? null
   : repoArg
@@ -331,7 +335,7 @@ for (const f of [process.env.OURA_TOKEN_FILE, path.join(process.env.HOME || os.h
 
 // ---- haystacks ----------------------------------------------------------
 
-const commits = String(git(repo, ["rev-list", "--all", "--reverse"])).split("\n").filter(Boolean);
+const commits = String(git(repo, ["rev-list", "--reverse", ...revs])).split("\n").filter(Boolean);
 
 // blob sha -> [{ where }] ; first commit that holds the blob at each path.
 const blobs = new Map();
@@ -396,7 +400,7 @@ for (const p of String(git(repo, ["ls-files", "-co", "--exclude-standard", "-z"]
   }
 }
 
-const log = String(git(repo, ["log", "--all", "--format=%H%x00%B%x01"]));
+const log = String(git(repo, ["log", "--format=%H%x00%B%x01", ...revs]));
 for (const rec of log.split("\x01")) {
   const [h, body] = rec.replace(/^\n/, "").split("\0");
   if (h && body) haystacks.push({ labels: [`${h.slice(0, 7)}:COMMIT_MSG`], buf: Buffer.from(body) });
