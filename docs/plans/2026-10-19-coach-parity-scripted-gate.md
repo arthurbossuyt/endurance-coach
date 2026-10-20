@@ -77,6 +77,30 @@ Run with Arthur at /release, after merge. This is the switch, so it touches his 
 
 ## Review log
 <!-- /peer-review appends one table per round -->
+### Round 1 · leads: self, opus, haiku (fable failed to start: usage credits; slot re-dispatched on haiku)
+| # | Lead | Sev | Finding | Verdict | Why / commit |
+|---|---|---|---|---|---|
+| 1 | self | High | leak-scan hits on plan dates, blocks pre-push | ✅ | reworded, branch squashed onto origin/main |
+| 2 | self | Med | `answers` accepts empty values | ✅ | in the squash |
+| 3 | self | Med | stamp ignores old.md/new.md/fixture.md | ✅ | in the squash |
+| 4 | self, opus, haiku | Med | active plan guessed as last id | ✅ | 95e0f4d (`gate --plan`) |
+| 5 | self, opus | Low | non-ParityError exits 1, same as gate fail | ✅ | 95e0f4d |
+| 6 | self | Low | dir-vs-ref spec ambiguity | ❌ | edge case; dir wins, documented in the usage header |
+| 7 | self | Low | link regex ignores code fences and parentheses | ❌ | not present in current rule files; rewrite applies to both sides |
+| 8 | self | Low | readGitTree/readDirTree duplicate logic | ❌ | cleanup only, two readers differ in source |
+| 9 | opus | Med | continuation lines under a key never compared | ✅ | 95e0f4d |
+| 10 | opus | Low | verify doesn't check the stamped specs are the switch trees | ❌ | gate takes any trees by design (Verify steps rely on it); post-release step 5 names the exact args |
+| 11 | opus | Low | treeHash skips `scripts/oura` | ❌ | decision 16 limits the rule trees to SKILL.md, references, adapters |
+| 12 | haiku | High | Q4 run can fall before the fixture's Monday start | ✅ | 95e0f4d (range starts at the last run day) |
+| 13 | haiku | High | both passes in one context, NEW adapter read before OLD pass | ✅ | 95e0f4d (fresh subagent per pass) |
+| 14 | haiku | Med | manifest maps adapter-split prose as link rewrites | ❌ | entries 14/19/23-28 cite old plan task 2 (Adapters list and pointers) and are not described as link-only; noted in Notes for Arthur |
+| 15 | haiku | Med | expected-diff list replaced by a pointer to a local manifest | ❌ | decision: the manifest never goes in the repo |
+| 16 | haiku | Low | manifest not recorded in the stamp | ✅ | 95e0f4d (`manifest.sha256`) |
+| 17 | haiku | Low | `reduceTarget` collapses links, dangling links not checked | ❌ | decision: link rewrites and cross-file moves aren't diffs |
+| 18 | haiku | Low | git ref stored unresolved, false stale after a commit | ✅ | 95e0f4d (resolved sha) |
+| 19 | haiku | Low | `ls-tree` without -z drops non-ASCII names | ✅ | 95e0f4d |
+| 20 | haiku | Low | unknown-key row echoes the key text | ✅ | 95e0f4d (line number instead) |
+
 
 ## Notes
 <!-- deviations recorded during execution -->
