@@ -65,7 +65,7 @@ Markers: ⬜ todo · 🔄 doing · ✅ done · ⛔ blocked
 **Why this model:** judgement over 50+ pages; a second model tier would make the run-twice check meaningless.
 
 ## Expected diffs for the parity gate
-Fill in during tasks 1–2 (sentence-level, file:line on this branch). The parity gate maps these instead of failing on them.
+Sentence-level, file:line on this branch: see the task 1 and task 2 lines in § Notes (plus the round 1 fixes in § Review log). The parity gate maps these instead of failing on them.
 - notion.md § Locked plan: fuel rewrite of an existing line needs a yes.
 - notion.md § Idempotent write: substance comparison, clause carry-over, dropped-clause report.
 - notion.md § Ramp windows: MP Before.
@@ -79,6 +79,22 @@ Run with Arthur at /release, after merge to main.
 
 ## Review log
 <!-- /peer-review appends one table per round -->
+### Round 1 · 2026-10-20 · leads: self (/code-review), opus, haiku (fable failed to start: usage credits)
+| # | Lead | Sev | Finding | Verdict | Why / commit |
+|---|---|---|---|---|---|
+| 1 | self, opus, haiku | High | MP Before cell says "breakfast drill (see long runs)" (gel 15′ before); "mini breakfast drill" undefined | ⏳ | needs Arthur's definition (open) |
+| 2 | self, opus, haiku | High/Med | "under about 60′ of quality work" ambiguous (session vs rep time), decides 11-10 | ⏳ | needs Arthur's call (open) |
+| 3 | opus, haiku | High/Med | Ramp windows Scope bullet lacks short-MP carve-out | ✅ | 088db21 |
+| 4 | self, opus, haiku | Med | g/kg daily-intake remarks vs substance field | ✅ | 088db21 |
+| 5 | opus | Med | "Water only." vs `No carbs` read as conflict | ✅ | 088db21 |
+| 6 | opus | Low | same-substance legacy-label line never migrated | ✅ | 088db21 |
+| 7 | haiku | High | duplicate-label removal drops clauses silently | ✅ | 088db21 |
+| 8 | haiku | Med | SKILL.md yes-clause reads as locked-plan only | ✅ | 088db21 |
+| 9 | self | Low | Expected diffs section still a stub | ✅ | filled (pointer to Notes) |
+| 10 | opus | Med | yes needed even after approving the session rewrite itself | ❌ | settled in Critical decisions (rewrite of an existing line needs the yes) |
+| 11 | opus, haiku | High/Med | task 3 ✅ though the identical-runs check failed | ❌ for now | Arthur accepted the 4 Notion-edited pages; the dry run must be re-run after the open items, since the fixes touch its rules |
+| 12 | haiku | Low | no gel timing for a one-rep MP; "one" vs "1" gel | ❌ | the plan's wording fixes "between rep 1 and rep 2"; number words are the same number under "same numbers" |
+
 
 ## Notes
 <!-- deviations recorded during execution -->
