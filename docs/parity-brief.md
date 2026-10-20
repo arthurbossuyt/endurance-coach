@@ -24,22 +24,22 @@ Hard rules for the whole run:
 Create `<run dir>` and write `<run dir>/fixture.md`. Read `profile.yaml` and the active `plans/<id>/plan.yaml` in `<home>` first (if more than one plan folder exists, ask Arthur once which is active). Record the following, copying every string character for character as the tool returned it (keep `′`, `–`, `≤`, `\~`, spacing):
 
 1. **Header:** `<run date>`, the local time, the active plan id, and the date range below.
-2. **Range:** from the Monday of the current week (`<run date>` itself if it is a Monday) to the **next run day**: the first date after `<run date>` with a Workout schedule row that includes running.
+2. **Range:** from the **range start** to the **next run day**. The range start is the earlier of (a) the Monday of the current week (`<run date>` itself if it is a Monday) and (b) the **last run day** on or before `<run date>`: the latest Workout schedule row dated on or before `<run date>` that includes running, searched back week by week until found (so Q4's row is always in the fixture). The next run day is the first date after `<run date>` with a Workout schedule row that includes running. Rows, the Strava window and Oura all start at the range start. Q2 still means this week's Monday to `<run date>`.
 3. **Notion Workout schedule rows** in the range: query the data source at profile.yaml `notion.workout_schedule.data_source_url` with the range as start and end, then `notion-fetch` each page. Per row, in date order:
    - `date`, `url`, `What?` (the title), `Sport`, `Shoe` (or `empty`), `Checkbox`
    - the `**📋 Target:**` line as fetched (or `no target line`)
    - every fuel line in page order, current and legacy labels (`🍞 Before`, `⛽ During`, `🥤 After`, `📝 Fuel log`, `🍞 Breakfast drill`, `🍞 Breakfast`, `⛽ Fuel`, `⛽ Gut rep`, `📝 Log after`), whole line from the opening `**`, plus any bullets under the Fuel log line (or `no fuel lines`)
-4. **Strava week:** `list_activities` from the range's Monday `00:00:00` to `<run date>` `23:59:59`. Per activity: id, name, `sport_type`, `start_local`, distance (m), moving time (s), `relative_effort`.
-5. **Oura:** readiness and sleep for the range's Monday to `<run date>`, via the `oura` CLI as NEW's `adapters/oura.md` says (`<repo>/skills/endurance-coach/scripts/oura readiness <monday> <run date>` and `... sleep <monday> <run date>`). Per day: readiness score and contributors, sleep score. If the CLI fails, write `unavailable` and the error message.
+4. **Strava week:** `list_activities` from the range start `00:00:00` to `<run date>` `23:59:59`. Per activity: id, name, `sport_type`, `start_local`, distance (m), moving time (s), `relative_effort`.
+5. **Oura:** readiness and sleep from the range start to `<run date>`, by running the CLI as a plain tool, without reading either tree's `adapters/oura.md` or any other rule file in this step: `<repo>/skills/endurance-coach/scripts/oura readiness <range start> <run date>` and `<repo>/skills/endurance-coach/scripts/oura sleep <range start> <run date>`. Per day: readiness score and contributors, sleep score. If the CLI fails, write `unavailable` and the error message.
 6. **Garmin:** only if `mcp__garmin__*` tools are available: for `<run date>`, `get_morning_training_readiness`, `get_sleep_summary`, `get_stats` (body battery fields, resting HR), and `get_activities_by_date` for the range. Otherwise write `Garmin: unavailable`.
 
-From here on, **no live tool calls at all**: no Notion, Strava, Oura or Garmin. The fixture is the only source of athlete activity and schedule data. The only other files you may read are `profile.yaml`, the active `plan.yaml` (both are hash-stamped by the gate) and the rule files of the pass you are on.
+From here on, **no live tool calls at all**: no Notion, Strava, Oura or Garmin. The fixture is the only source of athlete activity and schedule data. The only other files you may read are `profile.yaml`, the active `plan.yaml` (both are hash-stamped by the gate) and, inside a pass subagent, the rule files of that pass's tree. The snapshot itself reads no rule file of either tree.
 
 ## Step 2: two answer passes
 
-Do the **OLD pass** completely and write `old.md`, then do the **NEW pass** from scratch and write `new.md`. In each pass:
+Run each pass in its **own fresh subagent**, so neither pass can see the other. Hand each subagent only: the fixture path, the `profile.yaml` and active `plan.yaml` paths, that pass's tree path (OLD or NEW, never both), the question table and the field format below, and the instruction to return the five `## Q` blocks as its final message. The OLD subagent never sees NEW's path or answers and vice versa. Write `old.md` and `new.md` yourself from the returned blocks, unchanged. If you cannot spawn subagents, say so and stop after the snapshot so Arthur can run the second pass in a new session. In each pass:
 
-- Start at that tree's `SKILL.md` and read the files under that tree that it, or the files it links, point you to. **Never open a file from the other tree during a pass**, and don't look at `old.md` while doing the NEW pass. If the tree's text differs from what you remember of the other tree, follow the tree you are on, even on details like `~`, labels, gram format or date format.
+- Start at that tree's `SKILL.md` and read the files under that tree that it, or the files it links, point you to. **Never open a file from the other tree**, and never look at the other pass's answers. If the tree's text differs from what you remember of the other tree, follow the tree you are on, even on details like `~`, labels, gram format or date format.
 - Use only the fixture, `profile.yaml` and the active `plan.yaml`. If a rule says to pull live data, use the fixture's copy instead; if the fixture lacks it, write `none` for the affected field, never a guess.
 - Ignore free coaching prose: only the 7 fields below are recorded.
 
@@ -73,14 +73,14 @@ Building the fuel lines: pick the matrix row, ramp window and dated extras for t
 
 Value rules (the gate compares values literally, whitespace-trimmed only):
 
-- One line per value, no line breaks, no surrounding quotes or backticks, no comment after it.
+- One line per value, no line breaks (except fixture sub-bullets under a Fuel log line, copied as indented lines under the key), no surrounding quotes or backticks, no comment after it.
 - Copy fixture strings character for character.
 - `none` (lowercase) when a field doesn't apply or no subject row exists.
 - A subject with several rows (Q2, or two rows on one date): the per-row values joined with ` | ` in date order, then fixture order. Keep a `none` in the position of a row the field doesn't apply to.
 
 ## Step 3: write the files and run the gate
 
-Write `<run dir>/old.md` (OLD pass) and `<run dir>/new.md` (NEW pass) in exactly this format: five blocks, each heading exactly `## Q<n>` with nothing after it, each holding the 7 keys once in this order as `- <key>: <value>` lines. Put nothing else in a block (no other `- word:` lines); a title line above `## Q1` is fine.
+Write `<run dir>/old.md` (OLD pass) and `<run dir>/new.md` (NEW pass) in exactly this format: five blocks, each heading exactly `## Q<n>` with nothing after it, each holding the 7 keys once in this order as `- <key>: <value>` lines. Put nothing else in a block; a title line above `## Q1` is fine. Only an unindented `- key: value` line starts a key; any other non-blank line after it continues that key's value and is compared literally (trimmed lines joined with a newline), so keep a value on one line unless the fixture itself has sub-bullets.
 
 ```
 # Parity answers · <OLD|NEW> · <run date>
@@ -116,7 +116,7 @@ Write `<run dir>/old.md` (OLD pass) and `<run dir>/new.md` (NEW pass) in exactly
 Once both files are written, never edit either one to make the gate pass. Then run, from `<repo>`:
 
 ```
-scripts/parity gate --old ~/.claude/skills/endurance-coach --new skills/endurance-coach --manifest <home>/parity/switch-manifest.yaml --dir <run dir>
+scripts/parity gate --old ~/.claude/skills/endurance-coach --new skills/endurance-coach --manifest <home>/parity/switch-manifest.yaml --plan <active plan id from the fixture header> --dir <run dir>
 ```
 
 Report to Arthur: the `gate:` line, every `UNMAPPED`, `UNUSED` and `MISMATCH` row as printed (they name file:line or `Q<n> <key>`, never values), and the path of `result.md`. Then **stop**: no Notion write, no fixes, no switch. A PASS goes stale after any edit to either tree, `profile.yaml` or the active `plan.yaml`, and after today; `scripts/parity verify --dir <run dir>` checks that before the switch.

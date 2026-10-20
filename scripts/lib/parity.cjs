@@ -58,10 +58,10 @@ function readDirTree(dir) {
 
 function readGitTree(repo, ref) {
   const prefix = `${SKILL_SUBDIR}/`;
-  const ls = git(repo, ["ls-tree", "-r", "--name-only", ref, "--", prefix]);
+  const ls = git(repo, ["ls-tree", "-r", "-z", "--name-only", ref, "--", prefix]);
   if (ls.status !== 0) throw new ParityError(`git ls-tree ${ref} failed: ${String(ls.stderr).trim()}`);
   const rels = String(ls.stdout)
-    .split("\n")
+    .split("\0")
     .filter(Boolean)
     .map((p) => p.slice(prefix.length))
     .filter(isRuleFile)
@@ -245,18 +245,32 @@ function runRules(opts) {
 const QUESTIONS = [1, 2, 3, 4, 5];
 const ANSWER_KEYS = ["session", "intensity", "fuel.before", "fuel.during", "fuel.after", "fuel.log", "shoe"];
 
-// Parse one answers file: blocks `## Q1`..`## Q5`, each with `- key: value`
-// lines. Returns { answers: { <n>: { <key>: <trimmed value> } }, problems }
-// where problems are value-free strings ("Q2 missing block", "Q3 fuel.log
-// missing key", "Q1 shoe duplicate key", "Q4 foo unknown key").
+// Parse one answers file: blocks `## Q1`..`## Q5`. A key line is an
+// unindented `- key: value` line; every other non-blank line after a key line
+// in the block continues that key's value (each line trimmed, joined with
+// "\n"). Returns { answers: { <n>: { <key>: <value> } }, problems } where
+// problems are value-free strings ("Q2 missing block", "Q3 fuel.log missing
+// key", "Q1 shoe duplicate key", "Q4 line 12 unknown key").
 function parseAnswers(text) {
   const answers = {};
   const problems = [];
   let cur = null;
   let curN = 0;
+  let lastKey = null;
+  let parts = {};
+  const flush = () => {
+    if (!cur || !lastKey) return;
+    cur[lastKey] = parts[lastKey].join("\n");
+    if (!cur[lastKey]) problems.push(`Q${curN} ${lastKey} empty value`);
+  };
+  let lineNo = 0;
   for (const raw of text.split(/\r?\n/)) {
+    lineNo++;
     const h = /^##\s+Q(\d+)\s*$/.exec(raw.trim());
     if (h) {
+      flush();
+      lastKey = null;
+      parts = {};
       const n = Number(h[1]);
       if (!QUESTIONS.includes(n)) {
         cur = null;
@@ -271,16 +285,24 @@ function parseAnswers(text) {
       continue;
     }
     if (!cur) continue;
-    const m = /^\s*-\s+([A-Za-z_.]+)\s*:(.*)$/.exec(raw);
-    if (!m) continue;
-    const n = curN;
-    if (!ANSWER_KEYS.includes(m[1])) problems.push(`Q${n} ${m[1]} unknown key`);
-    else if (m[1] in cur) problems.push(`Q${n} ${m[1]} duplicate key`);
-    else {
-      cur[m[1]] = m[2].trim();
-      if (!cur[m[1]]) problems.push(`Q${n} ${m[1]} empty value`);
+    const m = /^-\s+([^:]+?)\s*:(.*)$/.exec(raw);
+    if (m) {
+      flush();
+      const n = curN;
+      lastKey = null;
+      if (!ANSWER_KEYS.includes(m[1])) problems.push(`Q${n} line ${lineNo} unknown key`);
+      else if (m[1] in cur) problems.push(`Q${n} ${m[1]} duplicate key`);
+      else {
+        lastKey = m[1];
+        parts[lastKey] = [m[2].trim()].filter(Boolean);
+        cur[lastKey] = "";
+      }
+      continue;
     }
+    const t = raw.trim();
+    if (t && lastKey) parts[lastKey].push(t);
   }
+  flush();
   for (const n of QUESTIONS) {
     if (!answers[n]) {
       problems.push(`Q${n} missing block`);
@@ -330,19 +352,24 @@ function treeHash(tree) {
   return h.digest("hex");
 }
 
-// Active plan: the only plan under <home>/plans, else the last id (plan.yaml
-// carries no active marker). Returns { id, file }.
-function activePlan(home) {
+// Active plan: the given id, else the only plan under <home>/plans, else the
+// last id (plan.yaml carries no active marker). Returns { id, file }.
+function activePlan(home, id) {
   const plans = athleteHome.planFiles(home);
+  if (id) {
+    const p = plans.find((x) => x.id === id);
+    if (!p) throw new ParityError(`no plans/${id}/plan.yaml in ${home}`);
+    return p;
+  }
   if (!plans.length) throw new ParityError(`no plans/<id>/plan.yaml in ${home}`);
   return plans[plans.length - 1];
 }
 
 // Hashes of the athlete files: { "profile.yaml", "plan.yaml" } plus the plan id.
-function athleteHashes(home) {
+function athleteHashes(home, planId) {
   const profile = path.join(home, "profile.yaml");
   if (!fs.existsSync(profile)) throw new ParityError(`no profile.yaml in ${home}`);
-  const plan = activePlan(home);
+  const plan = activePlan(home, planId);
   return { planId: plan.id, profile: sha256(fs.readFileSync(profile)), plan: sha256(fs.readFileSync(plan.file)) };
 }
 
@@ -379,6 +406,8 @@ function formatResult(r) {
     `old.sha256: ${r.old.hash}`,
     `new: ${r.new.spec}`,
     `new.sha256: ${r.new.hash}`,
+    `manifest: ${r.manifest.path}`,
+    `manifest.sha256: ${r.manifest.hash}`,
     `home: ${r.home}`,
     `plan: ${r.planId}`,
     `profile.yaml.sha256: ${r.profile}`,
@@ -396,7 +425,7 @@ function parseResult(text) {
     const i = l.indexOf(": ");
     if (i > 0) kv[l.slice(0, i)] = l.slice(i + 2);
   }
-  for (const k of ["result", "date", "old", "old.sha256", "new", "new.sha256", "home", "plan", "profile.yaml.sha256", "plan.yaml.sha256", ...RUN_FILES.map((n) => `${n}.sha256`)]) {
+  for (const k of ["result", "date", "old", "old.sha256", "new", "new.sha256", "manifest", "manifest.sha256", "home", "plan", "profile.yaml.sha256", "plan.yaml.sha256", ...RUN_FILES.map((n) => `${n}.sha256`)]) {
     if (!kv[k]) throw new ParityError(`result.md block lacks ${k}`);
   }
   return kv;
@@ -409,14 +438,24 @@ const today = () => {
 };
 
 // Stamp a gate run. `run` is runRules' return; specs are the --old/--new args.
-function buildResult({ ok, run, oldSpec, newSpec, dir }) {
+function buildResult({ ok, run, oldSpec, newSpec, dir, manifest, planId, repo }) {
   const home = athleteHome.homeDir();
-  const a = athleteHashes(home);
+  const a = athleteHashes(home, planId);
+  // A git ref moves with every commit: stamp the commit it resolved to.
+  const stampSpec = (spec) => {
+    if (isDirSpec(spec)) return path.resolve(spec);
+    const r = git(repo, ["rev-parse", "--verify", "--quiet", `${spec}^{commit}`]);
+    if (r.status !== 0) throw new ParityError(`cannot resolve ${spec}`);
+    return String(r.stdout).trim();
+  };
   return {
     ok,
     date: today(),
-    old: { spec: isDirSpec(oldSpec) ? path.resolve(oldSpec) : oldSpec, hash: treeHash(run.oldTree) },
-    new: { spec: isDirSpec(newSpec) ? path.resolve(newSpec) : newSpec, hash: treeHash(run.newTree) },
+    old: { spec: stampSpec(oldSpec), hash: treeHash(run.oldTree) },
+    new: { spec: stampSpec(newSpec), hash: treeHash(run.newTree) },
+    manifest: manifest
+      ? { path: path.resolve(manifest), hash: sha256(fs.readFileSync(manifest)) }
+      : { path: "none", hash: "none" },
     home,
     planId: a.planId,
     profile: a.profile,
@@ -440,6 +479,11 @@ function verifyResult(dir, repo) {
   for (const side of ["old", "new"]) {
     const h = treeHash(readTree(kv[side], repo));
     if (h !== kv[`${side}.sha256`]) rows.push(`${side} rule tree changed`);
+  }
+  if (kv.manifest !== "none" || kv["manifest.sha256"] !== "none") {
+    if (!fs.existsSync(kv.manifest) || sha256(fs.readFileSync(kv.manifest)) !== kv["manifest.sha256"]) {
+      rows.push("manifest changed");
+    }
   }
   const home = path.resolve(kv.home);
   const profile = path.join(home, "profile.yaml");

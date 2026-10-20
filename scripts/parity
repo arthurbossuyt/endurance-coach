@@ -42,16 +42,21 @@
 // fuel.after, fuel.log, shoe as `- key: value` lines. Values are compared
 // literally, whitespace-trimmed; an empty value is a problem. Prints `Q<n> <key>` per mismatch and
 // `old.md|new.md: Q<n> [<key>] missing block|missing key|...` for format
-// problems; never a value.
+// problems; never a value. A key line is an unindented `- key: value` line;
+// every other non-blank line after it in the block continues that key's
+// value (trimmed lines joined with a newline) and is compared literally.
 //
 // gate: runs rules and answers, then writes <dir>/result.md: PASS/FAIL, the
 // date, and in a fenced `parity-result` block a sha256 of each rule tree
 // (sorted relative path + content), of old.md, new.md and fixture.md in <dir>,
-// of profile.yaml and of the active
-// plans/<id>/plan.yaml in the athlete home ($ENDURANCE_COACH_HOME or
-// ~/.endurance-coach; the active plan is the only one, else the last id).
+// of profile.yaml, of the manifest (`manifest: <abs path>|none`) and of the
+// active plans/<id>/plan.yaml in the athlete home ($ENDURANCE_COACH_HOME or
+// ~/.endurance-coach). The active plan is --plan <id> (must exist, else exit
+// 2); without it the only plan, else the last id. A git ref spec is stamped as
+// the commit it resolved to.
 //
-// verify: recomputes those hashes. Fails on a FAIL result, any hash mismatch,
+// verify: recomputes those hashes (manifest mismatch or missing: "manifest
+// changed"). Fails on a FAIL result, any hash mismatch,
 // or a result dated another day (local date).
 //
 // Exit: 0 pass, 1 gate fail (any UNMAPPED or UNUSED row, answers mismatch,
@@ -68,7 +73,7 @@ const repo = path.resolve(__dirname, "..");
 const USAGE = [
   "usage: parity rules --old <dir|git ref> --new <dir|git ref> [--manifest <yaml>]",
   "       parity answers --dir <run dir>",
-  "       parity gate --old <dir|git ref> --new <dir|git ref> [--manifest <yaml>] --dir <run dir>",
+  "       parity gate --old <dir|git ref> --new <dir|git ref> [--manifest <yaml>] [--plan <id>] --dir <run dir>",
   "       parity verify --dir <run dir>",
 ].join("\n");
 
@@ -134,12 +139,12 @@ function cmdAnswers(args) {
 }
 
 function cmdGate(args) {
-  const f = parseFlags(args, ["old", "new", "manifest", "dir"]);
+  const f = parseFlags(args, ["old", "new", "manifest", "dir", "plan"]);
   if (!f.old || !f.new || !f.dir) die(USAGE);
   const rules = printRules(f);
   const answersOk = printAnswers(f.dir);
   const ok = rules.code === 0 && answersOk;
-  const result = parity.buildResult({ ok, run: rules.run, oldSpec: f.old, newSpec: f.new, dir: path.resolve(f.dir) });
+  const result = parity.buildResult({ ok, run: rules.run, oldSpec: f.old, newSpec: f.new, dir: path.resolve(f.dir), manifest: f.manifest || null, planId: f.plan || null, repo });
   const out = path.join(path.resolve(f.dir), "result.md");
   fs.writeFileSync(out, parity.formatResult(result));
   console.log(`gate: ${ok ? "PASS" : "FAIL"} (wrote ${out})`);
@@ -163,5 +168,5 @@ try {
   process.exit(commands[cmd](rest));
 } catch (e) {
   if (e instanceof parity.ParityError) die(e.message);
-  throw e;
+  die(String(e.code || e.name));
 }
