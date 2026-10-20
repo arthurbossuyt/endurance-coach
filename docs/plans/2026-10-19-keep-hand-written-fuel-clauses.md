@@ -82,8 +82,8 @@ Run with Arthur at /release, after merge to main.
 ### Round 1 · 2026-10-20 · leads: self (/code-review), opus, haiku (fable failed to start: usage credits)
 | # | Lead | Sev | Finding | Verdict | Why / commit |
 |---|---|---|---|---|---|
-| 1 | self, opus, haiku | High | MP Before cell says "breakfast drill (see long runs)" (gel 15′ before); "mini breakfast drill" undefined | ⏳ | needs Arthur's definition (open) |
-| 2 | self, opus, haiku | High/Med | "under about 60′ of quality work" ambiguous (session vs rep time), decides 11-10 | ⏳ | needs Arthur's call (open) |
+| 1 | self, opus, haiku | High | MP Before cell says "breakfast drill (see long runs)" (gel 15′ before); "mini breakfast drill" undefined | ✅ | 41c8a34: MP Before = threshold Before, no gel 15′ before, no window breakfast; 'mini' dropped |
+| 2 | self, opus, haiku | High/Med | "under about 60′ of quality work" ambiguous (session vs rep time), decides 11-10 | ✅ | 41c8a34: means total session length (Arthur) |
 | 3 | opus, haiku | High/Med | Ramp windows Scope bullet lacks short-MP carve-out | ✅ | 088db21 |
 | 4 | self, opus, haiku | Med | g/kg daily-intake remarks vs substance field | ✅ | 088db21 |
 | 5 | opus | Med | "Water only." vs `No carbs` read as conflict | ✅ | 088db21 |
@@ -92,9 +92,11 @@ Run with Arthur at /release, after merge to main.
 | 8 | haiku | Med | SKILL.md yes-clause reads as locked-plan only | ✅ | 088db21 |
 | 9 | self | Low | Expected diffs section still a stub | ✅ | filled (pointer to Notes) |
 | 10 | opus | Med | yes needed even after approving the session rewrite itself | ❌ | settled in Critical decisions (rewrite of an existing line needs the yes) |
-| 11 | opus, haiku | High/Med | task 3 ✅ though the identical-runs check failed | ❌ for now | Arthur accepted the 4 Notion-edited pages; the dry run must be re-run after the open items, since the fixes touch its rules |
+| 11 | opus, haiku | High/Med | task 3 ✅ though the identical-runs check failed | ✅ | dry run re-run twice after the fixes (rules at 41c8a34): runs identical (48 pages: unchanged 46, needs your yes 1 (12-01), skipped 1 (10-21), dropped 0); 10-26 to 11-01 0 rewrites; 10-20 and 10-27 unchanged; 0 Notion writes; leak-scan 0 hits |
 | 12 | haiku | Low | no gel timing for a one-rep MP; "one" vs "1" gel | ❌ | the plan's wording fixes "between rep 1 and rep 2"; number words are the same number under "same numbers" |
 
+
+Round 1: 8 fixed · 3 rejected · 0 ticketed · validate:examples pass.
 
 ## Notes
 <!-- deviations recorded during execution -->
@@ -104,3 +106,4 @@ Run with Arthur at /release, after merge to main.
 - Task 2 deviations: ranges written with a hyphen to match the file's style. Open, not fixed (outside the plan's scope): the matrix MP Before cell still says "plus the breakfast drill (see long runs)", and the long-run drill ends with a gel 15′ before the start, which clashes with the new notion.md sentence; "mini breakfast drill" is not defined anywhere in the repo. Needs a decision at /code-review or /peer-review.
 - Task 3 (accepted by Arthur: runs differ only on the 4 pages edited in Notion between them): two read-only dry runs over 48 pages (10-20 to race day). Run 1: unchanged 47, needs your yes 1 (12-01), dropped 0. Run 2: unchanged 46, needs your yes 1 (12-01), skipped 1 (10-21, Football has no matrix row), dropped 0. 0 Notion writes; leak-scan 0 hits on `--revs main..HEAD`. The runs differ only on 4 pages edited in Notion between them (10-21, 10-23, 10-24, 10-25), so the "both runs identical" check is not met yet. Results in `~/.endurance-coach/parity/` (outside the repo).
 - Task 3 findings for review: (a) "under about 60′ of quality work" is ambiguous (session length vs rep time); it decides 11-10 (unchanged vs needs your yes); (b) matrix MP Before cell vs notion.md Ramp windows sentence (see task 2) decides 10-27 and 12-01 Before; (c) 12-01 During timing conflicts with the MP exception (needs your yes); (d) daily-intake g/kg remarks in Before lines (11-14, 11-21) were treated as context, not substance.
+- Round 1 changed sentences (for the expected-diff list): notion.md:62 (Before row: window breakfast excludes MP), :90 (g/kg = session's own amount, `Water only`/`No carbs` = 0 g), :96 (legacy label mapped), :99 (removed duplicate's clauses named), :123 (MP short-session carve-out; 'mini' dropped); SKILL.md:60 (yes applies on every plan); nutrition-fueling.md:57-58 ('Session under about 60′ in total'; MP Before = threshold Before, no gel 15′ before, no window breakfast).
