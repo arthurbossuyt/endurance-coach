@@ -54,7 +54,7 @@ Markers: ⬜ todo · 🔄 doing · ✅ done · ⛔ blocked
 **Satisfies:** AC-05, AC-06
 **Why this model:** coaching rule change under G-05; must not loosen the over-fuel guardrail.
 
-### 3. Read-only dry run, twice · ⬜ · [backend] · Opus 5.5 / high
+### 3. Read-only dry run, twice · 🔄 · [backend] · Opus 5.5 / high
 **Files:** none in the repo. Results go to `~/.endurance-coach/parity/` (athlete data; never in the repo).
 **Do:**
 - Apply the branch's rules (tasks 1–2) to every Workout schedule page from 10-20 through race day: query, `notion-fetch` each page, build target lines, classify each page written / updated / unchanged / needs your yes / skipped, list kept and dropped clauses. **No Notion write call.**
@@ -86,3 +86,5 @@ Run with Arthur at /release, after merge to main.
 - Task 1 deviations (choices the plan left open): a legacy-label line whose substance conflicts gets its label migrated now, text unchanged, and only the substance change waits for the yes; a line waiting for a yes is written as fetched in the same call, so the page's other entries still land.
 - Task 2 (19b3873), changed sentences for the expected-diff list: nutrition-fueling.md:57 (Threshold During, short-session exception), :58 (MP During, short-session exception; also replaces "the date's gel interval" for those sessions), notion.md:123 (§ Ramp windows Scope bullet: MP takes threshold Before plus mini breakfast drill, never a window's `breakfast`).
 - Task 2 deviations: ranges written with a hyphen to match the file's style. Open, not fixed (outside the plan's scope): the matrix MP Before cell still says "plus the breakfast drill (see long runs)", and the long-run drill ends with a gel 15′ before the start, which clashes with the new notion.md sentence; "mini breakfast drill" is not defined anywhere in the repo. Needs a decision at /code-review or /peer-review.
+- Task 3 (open): two read-only dry runs over 48 pages (10-20 to race day). Run 1: unchanged 47, needs your yes 1 (12-01), dropped 0. Run 2: unchanged 46, needs your yes 1 (12-01), skipped 1 (10-21, Football has no matrix row), dropped 0. 0 Notion writes; leak-scan 0 hits on `--revs main..HEAD`. The runs differ only on 4 pages edited in Notion between them (10-21, 10-23, 10-24, 10-25), so the "both runs identical" check is not met yet. Results in `~/.endurance-coach/parity/` (outside the repo).
+- Task 3 findings for review: (a) "under about 60′ of quality work" is ambiguous (session length vs rep time); it decides 11-10 (unchanged vs needs your yes); (b) matrix MP Before cell vs notion.md Ramp windows sentence (see task 2) decides 10-27 and 12-01 Before; (c) 12-01 During timing conflicts with the MP exception (needs your yes); (d) daily-intake g/kg remarks in Before lines (11-14, 11-21) were treated as context, not substance.
