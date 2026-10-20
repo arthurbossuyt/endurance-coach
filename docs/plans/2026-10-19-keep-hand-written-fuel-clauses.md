@@ -44,7 +44,7 @@ Markers: ⬜ todo · 🔄 doing · ✅ done · ⛔ blocked
 **Satisfies:** AC-01, AC-02, AC-03, AC-04
 **Why this model:** G-05 applies, and the wording must be tight enough that two dry runs agree.
 
-### 2. Short-session matrix exception and MP Before · ⬜ · [backend] · Opus 5.5 / high
+### 2. Short-session matrix exception and MP Before · ✅ · [backend] · Opus 5.5 / high
 **Files:** `skills/endurance-coach/references/nutrition-fueling.md`, `skills/endurance-coach/adapters/notion.md`
 **Do:**
 - nutrition-fueling.md § Session fueling matrix: on the Threshold and MP rows' During, add the exception (under about 60′ of quality work: 1 gel with 150–200 ml water; threshold before the first rep, MP between rep 1 and rep 2). Keep the g/h ranges for longer sessions. The MP row keeps "test the race gel at MP".
@@ -84,3 +84,5 @@ Run with Arthur at /release, after merge to main.
 <!-- deviations recorded during execution -->
 - Task 1 (b096caa), changed sentences for the expected-diff list: notion.md:11 (§ Locked plan exception), :90 (§ Idempotent write step 2, substance fields and context clauses defined), :95-97 (step 3 new_str bullet plus same-substance and conflict sub-bullets), :100 ("identical" becomes new_str equals old_str), :108 (Safety: substance rewrite needs a yes); SKILL.md:60 (When fuel shows up), :70 (step 3), :71 (step 4 count adds "needs your yes" and "clauses dropped").
 - Task 1 deviations (choices the plan left open): a legacy-label line whose substance conflicts gets its label migrated now, text unchanged, and only the substance change waits for the yes; a line waiting for a yes is written as fetched in the same call, so the page's other entries still land.
+- Task 2 (19b3873), changed sentences for the expected-diff list: nutrition-fueling.md:57 (Threshold During, short-session exception), :58 (MP During, short-session exception; also replaces "the date's gel interval" for those sessions), notion.md:123 (§ Ramp windows Scope bullet: MP takes threshold Before plus mini breakfast drill, never a window's `breakfast`).
+- Task 2 deviations: ranges written with a hyphen to match the file's style. Open, not fixed (outside the plan's scope): the matrix MP Before cell still says "plus the breakfast drill (see long runs)", and the long-run drill ends with a gel 15′ before the start, which clashes with the new notion.md sentence; "mini breakfast drill" is not defined anywhere in the repo. Needs a decision at /code-review or /peer-review.
