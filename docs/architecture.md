@@ -15,6 +15,7 @@ How the endurance-coach plugin is laid out and how to extend it. Built on branch
 | `examples/triathlete/` | Fictional athlete home; CI validates it. |
 | `scripts/validate.mjs` | `npm run validate:examples` (CI) and `npm run validate:local` (local only, reads `$ENDURANCE_COACH_HOME` or `~/.endurance-coach`). Errors print key paths, never values. |
 | `scripts/leak-scan`, `scripts/leak-scan.allow` | Local-only leak scan of all history (or, with `--revs`, the given commits) against the real athlete home. Header comment documents every needle. |
+| `scripts/parity`, `docs/parity-brief.md` | Scripted parity gate (`rules`, `gate`, `verify`) and the fixed brief for the question runs. Manifest and results live in `~/.endurance-coach/parity/`, never in the repo. |
 | `.githooks/pre-push` | Opt-in hook (`git config core.hooksPath .githooks`): leak-scans the commits a push sends, blocks on any hit, refuses `archive/*` branches, skips without a profile. |
 | `scripts/lib/athlete-home.cjs` | Shared home resolution, plan discovery and YAML loading for both scripts. |
 | `.github/workflows/` | `validate.yml` (examples, Oura script on Linux) and `gitleaks.yml`. Actions pinned to SHAs. |
@@ -33,6 +34,7 @@ Never in the repo. It lives in `<home>` = `$ENDURANCE_COACH_HOME` or `~/.enduran
 ## Decisions to respect
 
 - Rule text moves verbatim (G-05). Deliberate rewording goes on the plan's expected-diff list.
+- Rule-text edits re-run `scripts/parity`.
 - Arthur's live skill is a separate frozen copy until the parity gate passes (G-06).
 - Schemas are v0 and fit Arthur plus the example athlete; a minimal profile for new athletes is onboarding work (child b).
 - The Notion write pattern is Arthur's workflow, moved unchanged; generalising outputs is child (d).
