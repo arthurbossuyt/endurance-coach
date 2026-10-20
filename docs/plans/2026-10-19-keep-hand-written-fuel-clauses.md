@@ -108,8 +108,10 @@ Round 1: 8 fixed · 3 rejected · 0 ticketed · validate:examples pass.
 | 5 | haiku | Med | plan quotes hand-written athlete clauses in AC-02 | ✅ | 4702712 (placeholders). The original text is still in earlier commits of this unpushed branch; rewrite needs Arthur |
 | 6 | haiku | Low | plan Critical decisions and ACs still say 'quality work' and 'mini breakfast drill' | ✅ | 4702712 |
 | 7 | opus | Low | 'race-specific runs' vs MP wording | ❌ | the matrix rows decide the set (long run with MP finish = as long run); MP is excluded explicitly at notion.md:62 and :123 |
-| 8 | haiku | Med | sodium (mg/h) is not a substance field though race rows prescribe it | ⏳ | not in the plan's field list; Arthur's call |
-| 9 | haiku | Low | fartlek has no reps for 'before the first rep' | ⏳ | gel timing for fartlek is not in the plan; Arthur's call |
+| 8 | haiku | Med | sodium (mg/h) is not a substance field | ✅ | 249ceee (added; Arthur) |
+| 9 | haiku | Low | fartlek has no reps for the short-session gel | ✅ | 249ceee (fartlek: at the start; Arthur) |
+| 10 | opus | High | rest and carb-load trial figures (11-14, 11-21) | ⏳ | 249ceee added the carve-out, but it needs the line or dated extras to mark a trial; both Before lines say 'low-FODMAP day 2', not 'trial', so they still need your yes (open) |
+Dry run re-run twice at 249ceee: identical; 48 pages: unchanged 44, needs your yes 3 (11-14, 11-21, 12-01), skipped 1 (10-21), dropped 0; 0 Notion writes; leak-scan 0 hits.
 Dry run re-run twice after the fixes (rules at 4702712): runs identical (48 pages: unchanged 44, needs your yes 3 (11-14, 11-21, 12-01), skipped 1 (10-21), dropped 0); 10-26 to 11-01 0 rewrites; 10-20 and 10-27 unchanged; 0 Notion writes; leak-scan 0 hits.
 Round 2: 6 fixed · 1 rejected · 0 ticketed · 2 open · validate:examples pass.
 
