@@ -33,7 +33,7 @@ Settled in exploration. Do not relitigate.
 ## Tasks
 Markers: ⬜ todo · 🔄 doing · ✅ done · ⛔ blocked
 
-### 1. Substance comparison in the idempotent write · ⬜ · [backend] · Opus 5.5 / high
+### 1. Substance comparison in the idempotent write · ✅ · [backend] · Opus 5.5 / high
 **Files:** `skills/endurance-coach/adapters/notion.md`, `skills/endurance-coach/SKILL.md`
 **Do:**
 - notion.md § Idempotent write: in step 2/3, define the substance fields and context clauses (Critical decisions), replace "A target line identical to the line already there" with "same substance", and spell out the conflict path: rebuild only the conflicting part, carry non-conflicting clauses verbatim, drop and name a contradicting clause. Keep the `old_str` mechanics (whole line, copied exactly) unchanged.
@@ -82,3 +82,5 @@ Run with Arthur at /release, after merge to main.
 
 ## Notes
 <!-- deviations recorded during execution -->
+- Task 1 (b096caa), changed sentences for the expected-diff list: notion.md:11 (§ Locked plan exception), :90 (§ Idempotent write step 2, substance fields and context clauses defined), :95-97 (step 3 new_str bullet plus same-substance and conflict sub-bullets), :100 ("identical" becomes new_str equals old_str), :108 (Safety: substance rewrite needs a yes); SKILL.md:60 (When fuel shows up), :70 (step 3), :71 (step 4 count adds "needs your yes" and "clauses dropped").
+- Task 1 deviations (choices the plan left open): a legacy-label line whose substance conflicts gets its label migrated now, text unchanged, and only the substance change waits for the yes; a line waiting for a yes is written as fetched in the same call, so the page's other entries still land.
