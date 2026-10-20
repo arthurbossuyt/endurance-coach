@@ -120,7 +120,7 @@ Safety:
 Read plan.yaml `ramp_windows` (overall span in `ramp_windows.period`). Applied as `ramp_windows.applies_to` says: on top of the matrix rows for long runs, MP sessions, the weekly gut rep and race week. Pick the window by the session date (`windows[].from` / `to`). The why lives in the vault at plan.yaml `rationale.vault_path` § Gut plan (link, don't copy). Gel size: `ramp_windows.gel`.
 
 - Each window's `long_run_gels` goes in `⛽ During`; its `breakfast` goes in `🍞 Before`.
-- **Scope:** a window's `long_run_gels` applies to long runs only (and to MP sessions as the matrix MP row says: "following the gel interval for the date"), and its `breakfast` to long and race-specific runs only. Every other session type (easy runs, the gut-rep easy run, threshold, gym, rest) keeps its matrix row plus matching dated extras and never takes a window's gels or breakfast.
+- **Scope:** a window's `long_run_gels` applies to long runs only (and to MP sessions as the matrix MP row says: "following the gel interval for the date"), and its `breakfast` to long and race-specific runs only. An MP session never takes a window's `breakfast` (so no "Gel 15′ before"): its `🍞 Before` is the threshold Before plus the mini breakfast drill (matrix MP row). Every other session type (easy runs, the gut-rep easy run, threshold, gym, rest) keeps its matrix row plus matching dated extras and never takes a window's gels or breakfast.
 - **No window for the date:** this only selects the window for those session types. If a date inside `ramp_windows.period` falls between windows, use the most recent earlier window, including any condition it carries (for example "only if the stomach stayed quiet"). Dates outside `period` get no ramp: use the matrix row alone.
 
 Dated extras:
