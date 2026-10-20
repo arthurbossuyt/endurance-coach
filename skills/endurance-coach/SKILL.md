@@ -57,7 +57,7 @@ Every session on the Notion Workout schedule gets a fueling recommendation, rest
 
 ### When fuel shows up
 
-- **Planning or rewriting sessions:** any session you add, move or rewrite in Notion gets its fuel lines in the same pass, the same way it gets a `Shoe`. If the active plan is locked (plan.yaml `locked: true`), add, move or rewrite a session, including its `Shoe`, only after the athlete's explicit yes (adapters/notion.md § Locked plan); fuel lines and Fuel log entries are still written, except a substance rewrite of an existing fuel line, which is shown old → new and written only after the athlete's yes (adapters/notion.md § Idempotent write).
+- **Planning or rewriting sessions:** any session you add, move or rewrite in Notion gets its fuel lines in the same pass, the same way it gets a `Shoe`. If the active plan is locked (plan.yaml `locked: true`), add, move or rewrite a session, including its `Shoe`, only after the athlete's explicit yes (adapters/notion.md § Locked plan); fuel lines and Fuel log entries are still written. On every plan, locked or not, a substance rewrite of an existing fuel line is shown old → new and written only after the athlete's yes (adapters/notion.md § Idempotent write).
 - **"What should I do today" (and other day-of check-ins):** the answer always includes that session's Before / During / After line. Read it from the session page; if the page has no fuel yet, work it out from the matrix and ramp window and offer to write it.
 - **"What should I eat before my run":** answer from the matrix row and ramp window for that session, sized to the athlete's weight (profile.yaml `weight`), pantry products only.
 
