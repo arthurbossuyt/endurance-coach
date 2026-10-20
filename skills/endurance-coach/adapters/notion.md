@@ -8,7 +8,7 @@ IDs verified on profile.yaml `notion.date` (notes in `notion.verified_note`) —
 
 ## Locked plan
 
-If the active plan has `locked: true` (plan.yaml), **never move, rewrite or add a session without the athlete's explicit yes.** Say what you would change and wait. Changing a session row's properties (`What?`, `Date`, `Sport`, `Shoe`) counts as a rewrite. Fuel lines and Fuel log entries (see Fuel on session pages) are still written without asking.
+If the active plan has `locked: true` (plan.yaml), **never move, rewrite or add a session without the athlete's explicit yes.** Say what you would change and wait. Changing a session row's properties (`What?`, `Date`, `Sport`, `Shoe`) counts as a rewrite. Fuel lines and Fuel log entries (see Fuel on session pages) are still written without asking, except a substance rewrite of an existing fuel line: show it old → new and write it only after the athlete's yes (see Idempotent write).
 
 ## Canonical database — "Workout schedule Database"
 
@@ -87,14 +87,17 @@ A **fuel line** is a line that starts with one of the nine labels above. Everyth
 
 1. `notion-fetch` the page. Split `<content>` into lines and collect the fuel lines (current and legacy labels) in page order.
 2. Build the target lines for this session: Before, During, After (if the row says so), Fuel log (if it includes a run).
+   Lines are compared by substance, never by wording. The **substance fields** of a fuel line are: grams or g/kg, g/h, gel count and gel timing, product, water amount, and timing window (`2–3 h before`); `No carbs` counts as 0 g. Everything else on the line is a **context clause** (a remark on the session's length, a reminder to note the stomach, a hand-written note). A fetched line has the **same substance** as its target line when every substance field holds the same value on both (same numbers and units, same product, same timing), whatever the wording, order or punctuation. A field that differs, or that is on one line and not the other, is a **substance conflict**.
 3. Pick the call:
    - **No fuel lines, including an empty body:** one `insert_content` (position `end`) with the target lines joined by `\n`.
    - **Otherwise:** one `update_content` with one `content_updates` entry per existing fuel line:
      - `old_str` = the whole line exactly as fetched, from the opening `**` to the end of the line, no trailing newline. Copy it character for character (`′`, `–`, `≤`, spacing).
-     - `new_str` = the target line for its label (legacy labels mapped as above).
+     - `new_str` = the line for its label (legacy labels mapped as above):
+       - Same substance: the line exactly as fetched, whatever its wording.
+       - Substance conflict: the fetched line with only the conflicting fields changed to the target values. Every other clause is carried over word for word. A context clause that contradicts a new value (it states, explains or depends on the old one) is dropped and named in the report as dropped; never drop a clause silently. This rewrite waits for the athlete's yes (see Safety).
      - A target label with no line on the page rides along on a neighbour: append it (`\n` + line) to the `new_str` of the closest earlier fuel label in the canonical order; if there is none, prepend it (line + `\n`) to the closest later one. The block stays together and in order, in a single call.
      - Two lines that map to the same label (e.g. `⛽ Fuel` and `⛽ Gut rep`): the first becomes the target line, the others are removed (`old_str` = `\n` + line, `new_str` = empty).
-     - A target line identical to the line already there: drop that entry. Nothing left means no call; count the page as unchanged.
+     - An entry whose `new_str` equals its `old_str` (same substance, current label, nothing riding along): drop that entry. Nothing left means no call; count the page as unchanged.
 4. Never use `replace_content` for fuel (it rewrites the whole body, Goal and GOWOD included) and never `replace_all_matches`.
 
 Safety:
@@ -102,6 +105,7 @@ Safety:
 - The same label twice with identical text (an old duplicate) cannot be matched uniquely: skip the page and report it, don't guess.
 - A filled `📝 Fuel log` (anything other than the placeholder) is the athlete's data. Never overwrite it or its bullets; leave it out of the update.
 - A legacy `📝 Log after` is a prompt, not data: replace it with the placeholder.
+- A substance rewrite of an existing fuel line needs the athlete's yes: show that line old → new and, until they agree, write it as fetched (a legacy label still migrated). The page's other entries go in the same call. Fuel on a page with no fuel lines and legacy label migration stay automatic.
 - If `update_content` fails on a match, re-fetch, rebuild the entries and retry once. Still failing: report the page and move on.
 
 ### Fuel log
