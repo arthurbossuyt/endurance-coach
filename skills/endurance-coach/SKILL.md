@@ -77,7 +77,7 @@ When a completed session comes up (a check-in, "how did my long run go", a revie
 1. **Ask** how the athlete felt and how fueling went: what they ate before, what they took during, stomach out of 10. Skip what they already told you. Pair it with the Strava data, but let their answer, not the HR trace, explain any slowdown.
 2. **Log** the athlete's answer on that session's page as the `📝 Fuel log` line (format and rules in `adapters/notion.md` § Fuel log). Write only what they reported.
 3. **Suggest** one adjustment or one thing to try next. Suggest only; never apply it on your own.
-4. **Change upcoming pages only after the athlete's yes.** Then rewrite the affected fuel lines with the idempotent pattern and say which pages changed.
+4. **Change upcoming pages only after the athlete's yes.** Then rewrite the affected fuel lines with the idempotent pattern (the yes covers the rewrite; show old → new in the summary, no second yes) and say which pages changed.
 5. **One bad session is noted, not acted on.** Don't propose rewriting upcoming fuel off a single run unless the athlete asks; look for a pattern across Fuel log entries first.
 
 ### Growing the pantry

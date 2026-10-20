@@ -15,18 +15,18 @@ Settled in exploration. Do not relitigate.
 - A context clause that contradicts the new substance is dropped and named in the report. Never drop a clause silently.
 - Rewriting an **existing** fuel line for a substance conflict needs the athlete's yes (show old → new first). Writing fuel onto a page with none, and migrating legacy labels, stay automatic. This narrows today's locked-plan rule that fuel lines are written without asking.
 - The 13 hand-written 🍞 Before clauses from the earlier parity dry run are covered by the same rule (they are context, so they are kept).
-- Matrix exception: threshold and MP sessions with under about 60′ of quality work get **1 gel** with 150–200 ml water (threshold: before the first rep; MP: between rep 1 and rep 2), not the 30–60 / 40–60 g/h range.
-- MP sessions do not take the ramp window's breakfast or its "Gel 15′ before": MP Before = the threshold Before plus the mini breakfast drill. Say so in notion.md § Ramp windows.
+- Matrix exception: threshold and MP sessions with session under about 60′ in total (Arthur, peer review round 1) get **1 gel** with 150–200 ml water (threshold: before the first rep; MP: between rep 1 and rep 2), not the 30–60 / 40–60 g/h range.
+- MP sessions do not take the ramp window's breakfast or its "Gel 15′ before": MP Before = the threshold Before with no gel 15′ before and no window breakfast (Arthur, peer review round 1). Say so in notion.md § Ramp windows.
 - Rule text changes are deliberate (G-05): every reworded rule goes on the expected-diff list below. Repo first; the live skill is changed only after merge (G-06).
 - Never put athlete values in the repo: refer to sessions by `MM-DD` and to plan values by key path (the leak scan treats plan.yaml ISO dates as needles).
 
 ## Acceptance criteria
 - AC-01: Given a session page whose fuel line has the same substance as the rules (grams or g/kg, g/h, gel count and timing, product, water amount, timing window) but different wording, when fuel is written or dry-run, then the line is left as is and the page counts as unchanged.
-- AC-02: Given a fuel line with hand-written context clauses (e.g. 10-29 "this one runs about 65′", "note the stomach 0–10"; the 13 Before clauses from the earlier parity dry run), when its substance conflicts with the rules, then only the conflicting part changes and every non-conflicting clause is carried over word for word.
+- AC-02: Given a fuel line with hand-written context clauses (e.g. 10-29 a remark on the session's length, a reminder to note the stomach; the Before clauses from the earlier parity dry run), when its substance conflicts with the rules, then only the conflicting part changes and every non-conflicting clause is carried over word for word.
 - AC-03: Given a context clause that contradicts the new substance value, when the line is rebuilt, then the clause is dropped and named in the report as dropped; no clause is ever dropped silently.
 - AC-04: Given an existing fuel line whose substance conflicts with the rules, when the coach would rewrite it, then it shows old → new and writes only after the athlete's yes; writing fuel onto a page with none and migrating legacy labels stay automatic.
-- AC-05: Given a threshold or MP session with under about 60′ of quality work, when fuel is built, then During is 1 gel (threshold: before the first rep; MP: between rep 1 and rep 2) with 150–200 ml water, not the 30–60 / 40–60 g/h range, and the 10-20 and 10-27 pages count as unchanged.
-- AC-06: Given an MP session, when Before is built, then it is the threshold Before plus the mini breakfast drill and does not take the ramp window's breakfast or "Gel 15′ before"; notion.md § Ramp windows says so explicitly.
+- AC-05: Given a threshold or MP session under about 60′ in total (Arthur, peer review round 1), when fuel is built, then During is 1 gel (threshold: before the first rep; MP: between rep 1 and rep 2) with 150–200 ml water, not the 30–60 / 40–60 g/h range, and the 10-20 and 10-27 pages count as unchanged.
+- AC-06: Given an MP session, when Before is built, then it is the threshold Before with no gel 15′ before and no window breakfast (Arthur, peer review round 1), and does not take the ramp window's breakfast or "Gel 15′ before"; notion.md § Ramp windows says so explicitly.
 - AC-07: Given the changed rules, when a read-only dry run covers 10-20 through race day twice, then both runs give the same result, every context clause is kept, 10-26 to 11-01 shows 0 rewrites, and nothing is written to Notion.
 - AC-08: Given the change, when it ships, then it lands in the repo first, is copied verbatim to the live skill (references/notion-schedule.md, nutrition-fueling.md, SKILL.md), and each reworded rule is on the parity expected-diff list.
 
