@@ -9,7 +9,7 @@ The idempotent fuel write never says what "identical" means, so one dry run comp
 ## Critical decisions
 Settled in exploration. Do not relitigate.
 - Fix the comparison, not the data: no plan.yaml `dated_extras` for clauses, no "free-text tail" parsing.
-- **Substance fields** (the only things compared): grams or g/kg, g/h, gel count and gel timing, product, water amount, timing window ("2–3 h before"). Everything else on a fuel line is a **context clause**.
+- **Substance fields** (the only things compared): grams or g/kg, g/h, gel count and gel timing, product, water amount, sodium (mg/h) (Arthur, peer review round 2), timing window ("2–3 h before"). Everything else on a fuel line is a **context clause**.
 - Substance matches → the line stays as fetched, whatever its wording; the page counts as unchanged.
 - Substance conflicts → change only the conflicting part, carry every non-conflicting clause over word for word.
 - A context clause that contradicts the new substance is dropped and named in the report. Never drop a clause silently.
@@ -21,7 +21,7 @@ Settled in exploration. Do not relitigate.
 - Never put athlete values in the repo: refer to sessions by `MM-DD` and to plan values by key path (the leak scan treats plan.yaml ISO dates as needles).
 
 ## Acceptance criteria
-- AC-01: Given a session page whose fuel line has the same substance as the rules (grams or g/kg, g/h, gel count and timing, product, water amount, timing window) but different wording, when fuel is written or dry-run, then the line is left as is and the page counts as unchanged.
+- AC-01: Given a session page whose fuel line has the same substance as the rules (grams or g/kg, g/h, gel count and timing, product, water amount, sodium (mg/h) (Arthur, peer review round 2), timing window) but different wording, when fuel is written or dry-run, then the line is left as is and the page counts as unchanged.
 - AC-02: Given a fuel line with hand-written context clauses (e.g. 10-29 a remark on the session's length, a reminder to note the stomach; the Before clauses from the earlier parity dry run), when its substance conflicts with the rules, then only the conflicting part changes and every non-conflicting clause is carried over word for word.
 - AC-03: Given a context clause that contradicts the new substance value, when the line is rebuilt, then the clause is dropped and named in the report as dropped; no clause is ever dropped silently.
 - AC-04: Given an existing fuel line whose substance conflicts with the rules, when the coach would rewrite it, then it shows old → new and writes only after the athlete's yes; writing fuel onto a page with none and migrating legacy labels stay automatic.
