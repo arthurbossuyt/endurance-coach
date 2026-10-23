@@ -45,11 +45,11 @@ Every session gets a fuel recommendation, rest and gym days included. Pick exact
 
 Every session gets **before + during**. **After** (carbs + protein within 1 h) is added for long runs and key sessions only (rows marked after: yes).
 
-`<…>` in a row is filled from profile.yaml, grams rounded to the nearest 5 g.
+`<…>` in a row is filled from profile.yaml, grams rounded to the nearest 5 g. Each Before, During and After cell is the text of that line, written after its label as it stands. The rest-day Before is a daily intake note, not a pre-session meal.
 
 | Session type | Before | During | After |
 |---|---|---|---|
-| Rest day + GOWOD | Daily note only: 5-7 g/kg (<5×weight>-<7×weight> g at <weight> kg), protein about 1.6 g/kg. Optional banana or snack. | Water. No carbs. | No |
+| Rest day + GOWOD | 5-7 g/kg (<5×weight>-<7×weight> g at <weight> kg), protein about 1.6 g/kg. Optional banana or snack. | Water. No carbs. | No |
 | ATG strength gym | Normal meal 2-3 h before, or a banana if hungry. | Water. No carbs. | No (eat the next normal meal) |
 | Easy run < 60′ (3-10 km, with or without strides) | Normal meal 2-3 h before. | Water only. | No |
 | Easy run with a planned gut-rep gel | Normal meal 2-3 h before. | 1 gel at 30′ with 150-200 ml water. Exception to "< 60′ = water only": a planned gut rep is a training stimulus, not a fuel need. | No |
