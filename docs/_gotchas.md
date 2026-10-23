@@ -43,7 +43,24 @@ Format: `### G-NN · title`, **Applies when**, **Gotcha** (with the why), **Evid
 **Evidence:** `ls -la ~/.claude/skills/` (plain directory); plan § Critical decisions.
 **Verified:** 2026-10-19
 
-### G-07 · An ISO date in a committed doc can be an athlete value
+### G-07 · A fuel rule lives in three files; change them together
+**Applies when:** changing what a fuel line contains or how it is compared (matrix rows, ramp windows, idempotent write, finish count).
+**Gotcha:** the same rule is stated in `references/nutrition-fueling.md` (matrix), `adapters/notion.md` (Format, Idempotent write, Ramp windows Scope, Safety) and `SKILL.md` (When fuel shows up, Fuel my upcoming sessions). Editing one leaves the others contradicting it, and the model then builds different target lines on different runs. In the keep-hand-written-fuel-clauses branch the MP Before cell, the Scope bullet and the Format table each disagreed after a first edit, and review round 1 and 2 found it. After a rule change, grep the changed term in all three files and re-run the read-only dry run (plan task 3) twice.
+**Evidence:** `skills/endurance-coach/references/nutrition-fueling.md:58`; `skills/endurance-coach/adapters/notion.md:62,123`; plan `docs/plans/2026-10-19-keep-hand-written-fuel-clauses.md` Review log rounds 1-2.
+**Verified:** 2026-10-23
+
+### G-08 · Plan files are committed: no athlete text, not even in acceptance criteria
+**Applies when:** writing or quoting examples in a `docs/plans/` file (ACs, Notes, Critical decisions).
+**Gotcha:** `scripts/leak-scan` only matches known needles, so hand-written Notion page text quoted in a plan passes it but is still athlete data in a public repo. Use generic placeholders ("a remark on the session's length") and `MM-DD` dates; keep real wording in `~/.endurance-coach/parity/`. Scrubbing later does not remove it from earlier commits.
+**Evidence:** `git log -S"this one runs about" -- docs/plans` (1f50ba9 added it, 4702712 removed it).
+**Verified:** 2026-10-23
+
+### G-09 · Local `main` can lag `origin/main`; diff against `origin/main`
+**Applies when:** reviewing or leak-scanning a branch (`git diff main...HEAD`, `scripts/leak-scan --revs main..HEAD`).
+**Gotcha:** local `main` was behind `origin/main` (33c6f7c vs bd4b7eb), so `main...HEAD` also shows already-merged PR changes and the range scans extra commits. Use `origin/main`, or fetch and fast-forward first.
+**Evidence:** `git rev-parse main origin/main` on this branch (2026-10-23).
+
+### G-10 · An ISO date in a committed doc can be an athlete value
 **Applies when:** writing a date into a plan's Notes or Review log, an area doc or a commit message.
 **Gotcha:** `scripts/leak-scan` treats every ISO date leaf in `profile.yaml` / `plan.yaml` / `session-log.yaml` as a needle, so a date that happens to equal one (a past race, a pantry or device date) is a hit. The pre-push hook scans every blob of every pushed commit, so one such date in an early commit blocks the push until history is squashed. Say "an earlier run" or leave the date out; the commit itself carries the date.
 **Evidence:** `scripts/leak-scan:30` (ISO date leaves are needles); plan `docs/plans/2026-10-19-coach-parity-scripted-gate.md` § Review log round 1 #1 (two dated lines blocked the branch and forced a squash).

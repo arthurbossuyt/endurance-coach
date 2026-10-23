@@ -8,7 +8,7 @@ IDs verified on profile.yaml `notion.date` (notes in `notion.verified_note`) —
 
 ## Locked plan
 
-If the active plan has `locked: true` (plan.yaml), **never move, rewrite or add a session without the athlete's explicit yes.** Say what you would change and wait. Changing a session row's properties (`What?`, `Date`, `Sport`, `Shoe`) counts as a rewrite. Fuel lines and Fuel log entries (see Fuel on session pages) are still written without asking.
+If the active plan has `locked: true` (plan.yaml), **never move, rewrite or add a session without the athlete's explicit yes.** Say what you would change and wait. Changing a session row's properties (`What?`, `Date`, `Sport`, `Shoe`) counts as a rewrite. Fuel lines and Fuel log entries (see Fuel on session pages) are still written without asking, except a substance rewrite of an existing fuel line: show it old → new and write it only after the athlete's yes (see Idempotent write).
 
 ## Canonical database — "Workout schedule Database"
 
@@ -59,7 +59,7 @@ Session bodies are bold labelled lines, one per line (`**🎯 Goal:**`, `**📋 
 
 | Label | On which sessions | Content |
 |---|---|---|
-| `**🍞 Before:**` | every session | The matrix "Before" for the row, plus the breakfast step from the ramp window for long and race-specific runs. Rest days: the daily g/kg note. |
+| `**🍞 Before:**` | every session | The matrix "Before" for the row, plus the breakfast step from the ramp window for long and race-specific runs (not MP sessions). Rest days: the daily g/kg note. |
 | `**⛽ During:**` | every session | The matrix "During": g/h, gel timing, water. `Water. No carbs.` where the matrix says so. |
 | `**🥤 After:**` | only rows marked After: yes | Carbs plus protein within 1 h. |
 | `**📝 Fuel log:**` | every session that includes a run | Placeholder until the athlete reports back (see Fuel log below). |
@@ -87,14 +87,18 @@ A **fuel line** is a line that starts with one of the nine labels above. Everyth
 
 1. `notion-fetch` the page. Split `<content>` into lines and collect the fuel lines (current and legacy labels) in page order.
 2. Build the target lines for this session: Before, During, After (if the row says so), Fuel log (if it includes a run).
+   Lines are compared by substance, never by wording. The **substance fields** of a fuel line are: grams or g/kg, g/h, gel count and gel timing, product, water amount, sodium (mg/h), and timing window (`2–3 h before`); `No carbs` and `Water only` both count as 0 g, so a wording difference between them is no conflict. The g/kg field is the session's own pre-session carb amount; on rest and carb-load days the daily g/kg figure is the substance of the Before line, and elsewhere a daily-intake figure in a Before line (for example a hand-written `g/kg over the day` remark) is a context clause. A rest or carb-load Before whose g/kg differs from the matrix range but is a deliberate hand-written trial figure (the line itself, or the plan's dated extras for that date, marks it as a trial figure) stays as it is: that g/kg is then a context clause, so the page counts as unchanged. Everything else on the line is a **context clause** (a remark on the session's length, a reminder to note the stomach, a hand-written note). A fetched line has the **same substance** as its target line when every substance field holds the same value on both (same numbers and units, same product, same timing), whatever the wording, order or punctuation. A field that differs, or that is on one line and not the other, is a **substance conflict**.
 3. Pick the call:
    - **No fuel lines, including an empty body:** one `insert_content` (position `end`) with the target lines joined by `\n`.
    - **Otherwise:** one `update_content` with one `content_updates` entry per existing fuel line:
      - `old_str` = the whole line exactly as fetched, from the opening `**` to the end of the line, no trailing newline. Copy it character for character (`′`, `–`, `≤`, spacing).
-     - `new_str` = the target line for its label (legacy labels mapped as above).
+     - `new_str` = the line for its label (legacy labels mapped as above):
+       - Same substance: the line exactly as fetched, whatever its wording, except that a legacy label is mapped to the current label.
+       - Substance conflict: the fetched line with only the conflicting fields changed to the target values. Every other clause is carried over word for word. A context clause that contradicts a new value (it states, explains or depends on the old one) is dropped and named in the report as dropped; never drop a clause silently. This rewrite waits for the athlete's yes (see Safety).
+     - Fuel log lines (`📝 Fuel log`, legacy `📝 Log after`) are not compared by substance: Safety and § Fuel log govern them (a filled log is never overwritten and is left out of the update; a legacy `Log after` is replaced with the placeholder).
      - A target label with no line on the page rides along on a neighbour: append it (`\n` + line) to the `new_str` of the closest earlier fuel label in the canonical order; if there is none, prepend it (line + `\n`) to the closest later one. The block stays together and in order, in a single call.
-     - Two lines that map to the same label (e.g. `⛽ Fuel` and `⛽ Gut rep`): the first becomes the target line, the others are removed (`old_str` = `\n` + line, `new_str` = empty).
-     - A target line identical to the line already there: drop that entry. Nothing left means no call; count the page as unchanged.
+     - Two lines that map to the same label (e.g. `⛽ Fuel` and `⛽ Gut rep`): the first is handled by the same-substance and substance-conflict rules above (kept as fetched, or only the conflicting fields changed after the yes), the others are removed (`old_str` = `\n` + line, `new_str` = empty). Each removed line's context clauses are named in the report as dropped; never drop them silently.
+     - An entry whose `new_str` equals its `old_str` (same substance, current label, nothing riding along): drop that entry. Nothing left means no call; count the page as unchanged.
 4. Never use `replace_content` for fuel (it rewrites the whole body, Goal and GOWOD included) and never `replace_all_matches`.
 
 Safety:
@@ -102,6 +106,7 @@ Safety:
 - The same label twice with identical text (an old duplicate) cannot be matched uniquely: skip the page and report it, don't guess.
 - A filled `📝 Fuel log` (anything other than the placeholder) is the athlete's data. Never overwrite it or its bullets; leave it out of the update.
 - A legacy `📝 Log after` is a prompt, not data: replace it with the placeholder.
+- A substance rewrite of an existing fuel line needs the athlete's yes: show that line old → new and, until they agree, write it as fetched (a legacy label still migrated). The page's other entries go in the same call. Fuel on a page with no fuel lines and legacy label migration stay automatic.
 - If `update_content` fails on a match, re-fetch, rebuild the entries and retry once. Still failing: report the page and move on.
 
 ### Fuel log
@@ -116,7 +121,7 @@ Safety:
 Read plan.yaml `ramp_windows` (overall span in `ramp_windows.period`). Applied as `ramp_windows.applies_to` says: on top of the matrix rows for long runs, MP sessions, the weekly gut rep and race week. Pick the window by the session date (`windows[].from` / `to`). The why lives in the vault at plan.yaml `rationale.vault_path` § Gut plan (link, don't copy). Gel size: `ramp_windows.gel`.
 
 - Each window's `long_run_gels` goes in `⛽ During`; its `breakfast` goes in `🍞 Before`.
-- **Scope:** a window's `long_run_gels` applies to long runs only (and to MP sessions as the matrix MP row says: "following the gel interval for the date"), and its `breakfast` to long and race-specific runs only. Every other session type (easy runs, the gut-rep easy run, threshold, gym, rest) keeps its matrix row plus matching dated extras and never takes a window's gels or breakfast.
+- **Scope:** a window's `long_run_gels` applies to long runs only (and to MP sessions as the matrix MP row says: "following the gel interval for the date"; a short MP session, the matrix MP row's short-session exception, takes 1 gel per that row instead of the window's gel schedule), and its `breakfast` to long and race-specific runs only. An MP session never takes a window's `breakfast` (so no "Gel 15′ before"): its `🍞 Before` is the threshold Before (matrix MP row). Every other session type (easy runs, the gut-rep easy run, threshold, gym, rest) keeps its matrix row plus matching dated extras and never takes a window's gels or breakfast.
 - **No window for the date:** this only selects the window for those session types. If a date inside `ramp_windows.period` falls between windows, use the most recent earlier window, including any condition it carries (for example "only if the stomach stayed quiet"). Dates outside `period` get no ramp: use the matrix row alone.
 
 Dated extras:

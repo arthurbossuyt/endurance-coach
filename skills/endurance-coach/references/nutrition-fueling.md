@@ -54,8 +54,8 @@ Every session gets **before + during**. **After** (carbs + protein within 1 h) i
 | Easy run < 60′ (3-10 km, with or without strides) | Normal meal 2-3 h before. | Water only. | No |
 | Easy run with a planned gut-rep gel | Normal meal 2-3 h before. | 1 gel at 30′ with 150-200 ml water. Exception to "< 60′ = water only": a planned gut rep is a training stimulus, not a fuel need. | No |
 | Easy run 60-90′ | Carb-containing meal or snack 1-3 h before. | 30-40 g/h, sipped with water. Carbs optional if it is truly easy and fed. | No |
-| Threshold / fartlek (quality) | 1-2 g/kg carbs 2-3 h before, or a lighter 1 g/kg if 1-2 h out. | 30-60 g/h from the start, with water. | After: yes |
-| MP session | Same as threshold, plus the breakfast drill (see long runs). | 40-60 g/h, following the gel interval for the date; test the race gel at MP. | After: yes |
+| Threshold / fartlek (quality) | 1-2 g/kg carbs 2-3 h before, or a lighter 1 g/kg if 1-2 h out. | 30-60 g/h from the start, with water. Session under about 60′ in total: 1 gel before the first rep (fartlek: at the start) with 150-200 ml water, not the g/h range. | After: yes |
+| MP session | Same as threshold; no gel 15′ before and no window breakfast. | 40-60 g/h, following the gel interval for the date; test the race gel at MP. Session under about 60′ in total: 1 gel between rep 1 and rep 2 with 150-200 ml water, not the g/h range or the date's gel interval. | After: yes |
 | Long run > 90′ (12-28 km) | Breakfast drill: 1-4 g/kg in the 1-4 h before, building toward about 150 g (2 g/kg) 3 h out, then a gel 15′ before the start. | Gel ramp by date window in g/h, each gel with 150-200 ml water. | After: yes |
 | Long run with MP finish | As long run. | As long run, with a gel timed just before the MP block. | After: yes |
 | 10 km time trial | As threshold (1-2 g/kg, 2-3 h before), gel 15′ before optional. | Water. Carbs not needed under about 45-60′ of hard effort. | After: yes |
