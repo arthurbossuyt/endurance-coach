@@ -59,4 +59,9 @@ Format: `### G-NN · title`, **Applies when**, **Gotcha** (with the why), **Evid
 **Applies when:** reviewing or leak-scanning a branch (`git diff main...HEAD`, `scripts/leak-scan --revs main..HEAD`).
 **Gotcha:** local `main` was behind `origin/main` (33c6f7c vs bd4b7eb), so `main...HEAD` also shows already-merged PR changes and the range scans extra commits. Use `origin/main`, or fetch and fast-forward first.
 **Evidence:** `git rev-parse main origin/main` on this branch (2026-10-23).
+
+### G-10 · An ISO date in a committed doc can be an athlete value
+**Applies when:** writing a date into a plan's Notes or Review log, an area doc or a commit message.
+**Gotcha:** `scripts/leak-scan` treats every ISO date leaf in `profile.yaml` / `plan.yaml` / `session-log.yaml` as a needle, so a date that happens to equal one (a past race, a pantry or device date) is a hit. The pre-push hook scans every blob of every pushed commit, so one such date in an early commit blocks the push until history is squashed. Say "an earlier run" or leave the date out; the commit itself carries the date.
+**Evidence:** `scripts/leak-scan:30` (ISO date leaves are needles); plan `docs/plans/2026-10-19-coach-parity-scripted-gate.md` § Review log round 1 #1 (two dated lines blocked the branch and forced a squash).
 **Verified:** 2026-10-23

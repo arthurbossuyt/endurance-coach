@@ -1,0 +1,172 @@
+#!/usr/bin/env node
+// Coach parity gate: checks that two copies of the endurance-coach skill
+// carry the same rule text (G-05), apart from a manifest of expected diffs.
+//
+//   scripts/parity rules --old <dir|git ref> --new <dir|git ref> [--manifest <yaml>]
+//
+// rules: reads SKILL.md, references/*.md and adapters/*.md (a missing
+// adapters/ is fine) of each tree. A directory is the skill root (holding
+// SKILL.md) or a checkout holding skills/endurance-coach/; anything else is
+// a git ref of this repo, read from skills/endurance-coach/ at that ref via
+// `git ls-tree` / `git show`. Every non-blank line is trimmed and each
+// relative markdown link target is reduced to its file name, anchor kept
+// (`](../adapters/notion.md#x)` -> `](notion.md#x)`), so lines that moved
+// across files or had their link path rewritten are not diffs. The two
+// trees are then compared as multisets of lines.
+//
+// The manifest (YAML, keep it outside the repo when it quotes personal
+// lines, e.g. ~/.endurance-coach/parity/switch-manifest.yaml):
+//   entries:
+//     - old: <old line> | null      # null: the new line was added
+//       new: <new line> | null      # null: the old line was removed
+//       reason: <why, with its source>
+// Entry lines are normalized like tree lines. Each entry maps one
+// occurrence of each of its non-null sides.
+//
+// Output, one row per diff line or entry, file:line only (line text is never
+// printed, since an old tree may quote personal values):
+//   MAPPED    entry <n>  old <file>:<line> -> new <file>:<line>
+//   UNMAPPED  old <file>:<line>        line only in the old tree
+//   UNMAPPED  new <file>:<line>        line only in the new tree
+//   UNUSED    entry <n>                manifest entry that matched nothing
+// then `rules: PASS|FAIL (...)`. "(line occurs nx on this side)" marks a line
+// that occurs n times in its tree; its excess occurrences over the other tree
+// are reported at the last positions.
+//
+//   scripts/parity answers --dir <run dir>
+//   scripts/parity gate --old <..> --new <..> [--manifest <yaml>] --dir <run dir>
+//   scripts/parity verify --dir <run dir>
+//
+// answers: parses <dir>/old.md and <dir>/new.md. Each holds blocks `## Q1` to
+// `## Q5` with exactly the keys session, intensity, fuel.before, fuel.during,
+// fuel.after, fuel.log, shoe as `- key: value` lines. Values are compared
+// literally, whitespace-trimmed; an empty value is a problem. Prints `Q<n> <key>` per mismatch and
+// `old.md|new.md: Q<n> [<key>] missing block|missing key|...` for format
+// problems; never a value. A key line is an unindented `- key: value` line;
+// every other non-blank line after it in the block continues that key's
+// value (trimmed lines joined with a newline) and is compared literally.
+//
+// gate: runs rules and answers, then writes <dir>/result.md: PASS/FAIL, the
+// date, and in a fenced `parity-result` block a sha256 of each rule tree
+// (sorted relative path + content), of old.md, new.md and fixture.md in <dir>,
+// of profile.yaml, of the manifest (`manifest: <abs path>|none`) and of the
+// active plans/<id>/plan.yaml in the athlete home ($ENDURANCE_COACH_HOME or
+// ~/.endurance-coach). The active plan is --plan <id> (must exist, else exit
+// 2); without it the only plan, else the last id. A git ref spec is stamped as
+// the commit it resolved to.
+//
+// verify: recomputes those hashes (manifest mismatch or missing: "manifest
+// changed"). Fails on a FAIL result, any hash mismatch,
+// or a result dated another day (local date).
+//
+// Exit: 0 pass, 1 gate fail (any UNMAPPED or UNUSED row, answers mismatch,
+// stale or failed result), 2 setup error.
+
+"use strict";
+
+const fs = require("node:fs");
+const path = require("node:path");
+const parity = require("./lib/parity.cjs");
+
+const repo = path.resolve(__dirname, "..");
+
+const USAGE = [
+  "usage: parity rules --old <dir|git ref> --new <dir|git ref> [--manifest <yaml>]",
+  "       parity answers --dir <run dir>",
+  "       parity gate --old <dir|git ref> --new <dir|git ref> [--manifest <yaml>] [--plan <id>] --dir <run dir>",
+  "       parity verify --dir <run dir>",
+].join("\n");
+
+function die(msg) {
+  console.error(`parity: ${msg}`);
+  process.exit(2);
+}
+
+// --key value pairs only; every key must be in `allowed`.
+function parseFlags(args, allowed) {
+  const out = {};
+  for (let i = 0; i < args.length; i += 2) {
+    const k = args[i];
+    if (!k.startsWith("--") || !allowed.includes(k.slice(2))) die(`unknown argument ${k}\n${USAGE}`);
+    if (i + 1 >= args.length) die(`${k} needs a value\n${USAGE}`);
+    out[k.slice(2)] = args[i + 1];
+  }
+  return out;
+}
+
+function loc(l) {
+  const dup = l.of > 1 ? `  (line occurs ${l.of}x on this side)` : "";
+  return `${l.file}:${l.line}${dup}`;
+}
+
+function cmdRules(args) {
+  const f = parseFlags(args, ["old", "new", "manifest"]);
+  if (!f.old || !f.new) die(USAGE);
+  return printRules(f).code;
+}
+
+function printRules(f) {
+  const run = parity.runRules({ old: f.old, new: f.new, manifest: f.manifest || null, repo });
+  const r = run.result;
+  console.log(`old       ${run.oldLabel}`);
+  console.log(`new       ${run.newLabel}`);
+  if (f.manifest) console.log(`manifest  ${path.resolve(f.manifest)}`);
+  for (const m of r.mapped) {
+    const sides = [m.old && `old ${loc(m.old)}`, m.new && `new ${loc(m.new)}`].filter(Boolean);
+    console.log(`MAPPED    entry ${m.entry.index}  ${sides.join(" -> ")}`);
+  }
+  for (const l of r.unmappedOld) console.log(`UNMAPPED  old ${loc(l)}`);
+  for (const l of r.unmappedNew) console.log(`UNMAPPED  new ${loc(l)}`);
+  for (const e of r.unused) console.log(`UNUSED    entry ${e.index}`);
+  const unmapped = r.unmappedOld.length + r.unmappedNew.length;
+  console.log(
+    `rules: ${run.ok ? "PASS" : "FAIL"} (${r.mapped.length} mapped, ${unmapped} unmapped, ${r.unused.length} unused)`
+  );
+  return { code: run.ok ? 0 : 1, run };
+}
+
+function printAnswers(dir) {
+  const a = parity.runAnswers(dir);
+  for (const r of a.rows) console.log(`MISMATCH  ${r}`);
+  console.log(`answers: ${a.ok ? "PASS" : "FAIL"} (${a.rows.length} problems)`);
+  return a.ok;
+}
+
+function cmdAnswers(args) {
+  const f = parseFlags(args, ["dir"]);
+  if (!f.dir) die(USAGE);
+  return printAnswers(f.dir) ? 0 : 1;
+}
+
+function cmdGate(args) {
+  const f = parseFlags(args, ["old", "new", "manifest", "dir", "plan"]);
+  if (!f.old || !f.new || !f.dir) die(USAGE);
+  const rules = printRules(f);
+  const answersOk = printAnswers(f.dir);
+  const ok = rules.code === 0 && answersOk;
+  const result = parity.buildResult({ ok, run: rules.run, oldSpec: f.old, newSpec: f.new, dir: path.resolve(f.dir), manifest: f.manifest || null, planId: f.plan || null, repo });
+  const out = path.join(path.resolve(f.dir), "result.md");
+  fs.writeFileSync(out, parity.formatResult(result));
+  console.log(`gate: ${ok ? "PASS" : "FAIL"} (wrote ${out})`);
+  return ok ? 0 : 1;
+}
+
+function cmdVerify(args) {
+  const f = parseFlags(args, ["dir"]);
+  if (!f.dir) die(USAGE);
+  const v = parity.verifyResult(path.resolve(f.dir), repo);
+  for (const r of v.rows) console.log(`STALE     ${r}`);
+  console.log(`verify: ${v.ok ? "PASS" : "FAIL"}`);
+  return v.ok ? 0 : 1;
+}
+
+const commands = { rules: cmdRules, answers: cmdAnswers, gate: cmdGate, verify: cmdVerify };
+
+const [cmd, ...rest] = process.argv.slice(2);
+if (!cmd || !commands[cmd]) die(USAGE);
+try {
+  process.exit(commands[cmd](rest));
+} catch (e) {
+  if (e instanceof parity.ParityError) die(e.message);
+  die(String(e.code || e.name));
+}
