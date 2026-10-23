@@ -15,7 +15,7 @@ How the endurance-coach plugin is laid out and how to extend it. Built on branch
 | `examples/triathlete/` | Fictional athlete home; CI validates it. |
 | `scripts/validate.mjs` | `npm run validate:examples` (CI) and `npm run validate:local` (local only, reads `$ENDURANCE_COACH_HOME` or `~/.endurance-coach`). Errors print key paths, never values. |
 | `scripts/leak-scan`, `scripts/leak-scan.allow` | Local-only leak scan of all history (or, with `--revs`, the given commits) against the real athlete home. Header comment documents every needle. |
-| `scripts/parity`, `docs/parity-brief.md` | Scripted parity gate (`rules`, `gate`, `verify`) and the fixed brief for the question runs. Manifest and results live in `~/.endurance-coach/parity/`, never in the repo. |
+| `scripts/parity`, `docs/parity-brief.md`, `docs/parity.md` | Scripted parity gate (`rules`, `gate`, `verify`) and the fixed brief for the question runs. Manifest and results live in `~/.endurance-coach/parity/`, never in the repo. |
 | `.githooks/pre-push` | Opt-in hook (`git config core.hooksPath .githooks`): leak-scans the commits a push sends, blocks on any hit, refuses `archive/*` branches, skips without a profile. |
 | `scripts/lib/athlete-home.cjs` | Shared home resolution, plan discovery and YAML loading for both scripts. |
 | `.github/workflows/` | `validate.yml` (examples, Oura script on Linux) and `gitleaks.yml`. Actions pinned to SHAs. |

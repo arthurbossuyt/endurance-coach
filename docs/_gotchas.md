@@ -42,3 +42,9 @@ Format: `### G-NN · title`, **Applies when**, **Gotcha** (with the why), **Evid
 **Gotcha:** `~/.claude/skills/endurance-coach` is a frozen copy, not a symlink to this repo. Branch edits reach Arthur only after the parity gate and the switch. Never edit the live copy from a branch; changes go repo first.
 **Evidence:** `ls -la ~/.claude/skills/` (plain directory); plan § Critical decisions.
 **Verified:** 2026-10-19
+
+### G-07 · An ISO date in a committed doc can be an athlete value
+**Applies when:** writing a date into a plan's Notes or Review log, an area doc or a commit message.
+**Gotcha:** `scripts/leak-scan` treats every ISO date leaf in `profile.yaml` / `plan.yaml` / `session-log.yaml` as a needle, so a date that happens to equal one (a past race, a pantry or device date) is a hit. The pre-push hook scans every blob of every pushed commit, so one such date in an early commit blocks the push until history is squashed. Say "an earlier run" or leave the date out; the commit itself carries the date.
+**Evidence:** `scripts/leak-scan:30` (ISO date leaves are needles); plan `docs/plans/2026-10-19-coach-parity-scripted-gate.md` § Review log round 1 #1 (two dated lines blocked the branch and forced a squash).
+**Verified:** 2026-10-23
