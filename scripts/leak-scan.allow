@@ -71,7 +71,6 @@ profile.devices.list[2].use  sha256:853309f90c6fdec8
 profile.daily_carbs.unit  sha256:4617e6d48df7dfc9
 
 # generic method and product-category labels
-profile.zones.hr.method  sha256:1de11a3b64001448
 profile.pantry.products[3].product  sha256:f9782dd7999dc14b
 
 # textbook Coggan %FTP boundaries (same for every athlete, not personal watts)

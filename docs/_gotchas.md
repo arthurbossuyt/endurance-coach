@@ -17,6 +17,12 @@ Format: `### G-NN · title`, **Applies when**, **Gotcha** (with the why), **Evid
 **Evidence:** plan § Notes, Task 1 ⛔ and Task 1 ✅ (2026-10-17/18).
 **Verified:** 2026-10-19
 
+### G-11 · A change in the real profile can make old example values collide
+**Applies when:** the athlete's `profile.yaml` changed (re-paced zones, new FTP, a renamed method), or `scripts/leak-scan` hits a file your branch did not touch.
+**Gotcha:** the needles come from the live athlete home, so a profile update can turn values that were already on main into hits. `--revs` scans the whole tree of every listed commit (`scripts/leak-scan:345`, `ls-tree -r`), so every commit cut before the fix keeps the hit and the pre-push hook blocks the branch until those commits are squashed (Arthur's call). Fix collisions as the first commit of a branch, before any other commit. Change the inputs and recompute (for example the example's `ftp`, then its Coggan zones), never hand-nudge derived numbers: that breaks the example's own model. A `leak-scan: allowlist pin changed` line means the pinned value changed; re-judge it, and drop the pin if the new value is personal (never re-pin personal text).
+**Evidence:** `examples/triathlete/profile.yaml:29-47` (ftp and power zones); plan `docs/plans/2026-11-17-recovery-source-blend.md` task 1 and § Review log round 1 rows 8 and 25 (early commits 61e7fcf, d0e9b66 still hit).
+**Verified:** 2026-11-18
+
 ## Skill content
 
 ### G-03 · Plugin scripts are not on PATH
@@ -65,3 +71,9 @@ Format: `### G-NN · title`, **Applies when**, **Gotcha** (with the why), **Evid
 **Gotcha:** `scripts/leak-scan` treats every ISO date leaf in `profile.yaml` / `plan.yaml` / `session-log.yaml` as a needle, so a date that happens to equal one (a past race, a pantry or device date) is a hit. The pre-push hook scans every blob of every pushed commit, so one such date in an early commit blocks the push until history is squashed. Say "an earlier run" or leave the date out; the commit itself carries the date.
 **Evidence:** `scripts/leak-scan:30` (ISO date leaves are needles); plan `docs/plans/2026-10-19-coach-parity-scripted-gate.md` § Review log round 1 #1 (two dated lines blocked the branch and forced a squash).
 **Verified:** 2026-10-23
+
+### G-12 · The recovery rule lives in four files; change them together
+**Applies when:** changing how readiness, the Oura vs Garmin flag, the intensity gate or the load metric is read.
+**Gotcha:** the rule is stated in `adapters/garmin.md` (Interpreting, Source of truth, flag, Intensity gate, load switch), summarised in `SKILL.md` (Recovery and Workflow bullets) and `references/athlete-data.md` (default workflow, Failure handling), and the Oura bands in `adapters/oura.md` carry the gate carve-out. The plan for the blend listed three files and missed `oura.md`, so its "prime = green light for a quality session" contradicted the gate until review. Grep the changed term across all four, then re-run `scripts/parity rules` and the replay gate (see [recovery.md](recovery.md)).
+**Evidence:** `skills/endurance-coach/adapters/oura.md:13`; `skills/endurance-coach/SKILL.md:46-47`; `skills/endurance-coach/references/athlete-data.md:22,68`; plan `docs/plans/2026-11-17-recovery-source-blend.md` § Review log round 1 rows 2 and 18.
+**Verified:** 2026-11-18

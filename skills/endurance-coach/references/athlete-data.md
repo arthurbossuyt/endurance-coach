@@ -19,7 +19,7 @@ The athlete's personal data is not in this skill. It lives in the athlete home: 
 
 - **Garmin — alongside Oura for the same today/this-week questions**, plus whenever the user names Body Battery, HRV status, training readiness, VO2max, race predictor or "my Garmin data". Before the switch date it is a secondary wellness signal. After it, it is the activity source (see [Source of truth by phase](../adapters/garmin.md#source-of-truth-by-phase)). Only when the `garmin` MCP is connected (see garmin.md).
 
-Default workflow for a "what should I do" question: **activities (Strava before the switch date, Garmin after) → recovery (Oura primary, Garmin Training Readiness second opinion, flag disagreements) → recommendation.**
+Default workflow for a "what should I do" question: **activities (Strava before the switch date, Garmin after) → recovery (Oura primary for the go/no-go, Garmin Training Readiness recovery clock gates intensity, flag only when the two land on opposite sides of 70) → recommendation.** Detail in [garmin.md § Intensity gate](../adapters/garmin.md#intensity-gate).
 
 ## Adapters
 
@@ -65,4 +65,5 @@ If the Strava MCP or `oura` CLI errors or returns nothing, **say the data was un
 - Say Garmin is unavailable and tell the user to re-run `garmin-mcp-auth` (tokens last about 6 months), then restart the session.
 - Answer from Strava + Oura. Do not invent Garmin numbers.
 - Plain-text non-JSON replies such as `No race predictions found.` mean no data for that tool, not an error and not a value.
+- Say the intensity gate was not checked ([garmin.md](../adapters/garmin.md) § Intensity gate).
 - If Strava or Oura is also down, fall back to asking the user to self-report.

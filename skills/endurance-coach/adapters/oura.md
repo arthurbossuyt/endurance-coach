@@ -10,6 +10,6 @@ Shell out to the script at `scripts/oura` in this skill's base directory (wraps 
 
 ### Interpreting Oura readiness
 
-- **≥85** prime — green light for a key/quality session. **70–84** normal — train as planned. **<70** caution — favour easier/aerobic, cut intensity before volume. **<60** back off — recovery/rest or very easy only.
+- **≥85** prime — green light for a key/quality session, unless the Garmin intensity gate applies ([garmin.md](garmin.md) § Intensity gate). **70–84** normal — train as planned, unless the Garmin intensity gate applies. **<70** caution — favour easier/aerobic, cut intensity before volume. **<60** back off — recovery/rest or very easy only.
 - A **low contributor pinpoints why**: low `hrv_balance` + elevated `resting_heart_rate` → systemic fatigue/under-recovery; low `previous_night`/`sleep_balance` → sleep debt; raised `body_temperature` / `temperature_deviation` (>~0.5 °C) alongside a low score → possible illness or deep fatigue — be conservative and, if symptomatic, defer to the safety/referral rules in SKILL.md.
 - Tie it back to load: poor readiness *after* a hard block is expected fatigue (read with `relative_effort` trend + [training-load.md](../references/training-load.md) TSB); poor readiness on a planned rest week is a flag.

@@ -108,6 +108,17 @@
         }
       }
     },
+    "load_switch": {
+      "allOf": [{ "$ref": "#/$defs/provenance" }],
+      "type": "object",
+      "required": ["switch_date"],
+      "properties": {
+        "switch_date": {
+          "anyOf": [{ "$ref": "#/$defs/isoDate" }, { "type": "null" }],
+          "description": "Date the load metric switches from Strava relative_effort to Garmin acute/chronic load. Optional key; missing or null = not switched."
+        }
+      }
+    },
     "weight": {
       "allOf": [{ "$ref": "#/$defs/provenance" }],
       "type": "object",

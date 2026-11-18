@@ -31,6 +31,10 @@ Never in the repo. It lives in `<home>` = `$ENDURANCE_COACH_HOME` or `~/.enduran
 - **Leak-scan hit on generic text:** confirm the value is skill vocabulary, then `scripts/leak-scan --pin <key path>` and add the printed line to `leak-scan.allow`. Never pin a personal value.
 - **Before any push:** the pre-push hook must be on; it blocks on any `leak-scan` hit in the pushed commits, index or worktree. A full `scripts/leak-scan` in a clone with the local `archive/*` branches hits on their pre-squash history; scan a fresh clone of the remote instead.
 
+## Area docs
+
+- [recovery.md](recovery.md): how recovery (Oura, Garmin readiness, the intensity gate) and the load metric are read, where each rule lives, and the gates to re-run after a change.
+
 ## Decisions to respect
 
 - Rule text moves verbatim (G-05). Deliberate rewording goes on the plan's expected-diff list.
